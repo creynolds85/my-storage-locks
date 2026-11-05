@@ -59,3 +59,14 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,te
   .mobile-nav{background:#252d36;border-color:#344054}.mobile-nav button{color:#d5dbe4}
   .mobile-nav button.active{color:#64c1ff}.mobile-nav button.active:after{content:'';height:2px;width:18px;background:#0198f4;border-radius:2px}
 }
+
+/* Approved login-page color and display-branding corrections. */
+.auth-intro h1{margin-bottom:22px}
+.auth-main .primary{background:var(--brand-blue);border-color:var(--brand-blue);color:#fff}
+.auth-main .primary:hover{background:#0189dc;border-color:#0189dc}
+.auth-main .primary:active{background:#017ac3;border-color:#017ac3}
+.auth-main .primary:focus-visible{outline-color:var(--brand-blue);outline-offset:3px}
+.auth-links button{color:var(--brand-blue)}
+.auth-links button:hover{color:#0189dc;text-decoration:underline;text-underline-offset:3px}
+.auth-links button:active{color:#017ac3}
+.auth-links button:focus-visible{outline-color:var(--brand-blue);outline-offset:3px;text-decoration:underline;text-underline-offset:3px}
