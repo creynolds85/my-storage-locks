@@ -1,3 +1,5 @@
 # Approved My Storage Locks assets
 
 The supplied 1536 × 691 raster is retained byte-for-byte as approved-original.jpg. The deployed horizontal and header PNGs are cropped/resized copies of that source; typography, wordmark, line weights, and colors are preserved. The transparent PNG removes only the near-white background and preserves colored source pixels. The 3072px PNG is a source-derived enlargement, not newly invented detail. The full-logo SVG embeds the approved raster so its letterforms remain exact; it is not a fully vectorized wordmark. The compact padlock SVG follows the source's visible geometry and closes the body outline behind the omitted lettering, without adding a keyhole.
+
+`logo-sidebar-dark.svg` embeds the existing transparent approved artwork with SVG component clips and a white color filter. Charcoal components become white; electric-blue components and the approved geometry remain unchanged. Its viewBox uses the same crop as the horizontal logo. Regenerate it with `node scripts/prepare-sidebar-logo.mjs`. No original logo asset is overwritten.

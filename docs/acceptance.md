@@ -17,3 +17,12 @@ GitHub source publication and Git-linked releases require the connected GitHub a
 
 ## Production smoke result
 Production deployment dpl_4m48X1b3nf6uzEWyzcFbDWyuqg2S is READY. https://my-storage-locks.vercel.app loads the actual sign-in screen at 1440px and 390px without page errors or horizontal overflow. /api/health returns 200. Anonymous inventory and combination RPC requests both return 401. No error/fatal runtime logs were found in the post-deployment window. GitHub source commit: 66175c4f49fafd627899f3f499d176b10ad38594. Vercel Git auto-deploy connection remains to be configured in the existing project's Git settings. DNS still points to registrar parking addresses; authentication redirect setup and first real-user login remain unverified.
+
+## Dashboard refinement — 2026-11-05
+- Production build and TypeScript passed. Thirteen focused tests passed, including a real Supabase query-builder test for combined status + facility + serial constraints.
+- Isolated browser fixtures verified all six card counts and targets, Back navigation, facility scope, individual Missing/Damaged labels, employee exclusion of All Facilities/Administration, case-insensitive partial search, combination reveal, return, cross-color auction assignment, keyboard card activation and filtered export scope.
+- Responsive frame checks passed at 1920px (six columns), 900px (three columns), 390px and 320px (two columns). Six cards at every width; no horizontal page overflow.
+- Card headings are 16px/700 with uniform 16px indicators in the six approved colors.
+- Sidebar asset preserves the approved source geometry: 92,588 opaque blue pixels unchanged, 85,222 charcoal pixels whitened, no opaque artwork clipped. Original assets retained.
+- Production read-only checks found no facilities or locks at review time. RLS remains enabled for facilities, locks, profiles, assignments and activity; lock reads and inventory counts continue to enforce facility access.
+- Browser data was isolated test data, not production inventory. No production records, auth policies, credentials, migrations or Cubby data were modified. Live authenticated operational acceptance requires a signed-in user session; the fixture checks do not claim that acceptance.
