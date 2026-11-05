@@ -1,0 +1,1 @@
+import LockManager from "@/components/lock-manager";export default function Page(){return <LockManager/>}

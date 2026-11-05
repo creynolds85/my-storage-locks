@@ -1,0 +1,1 @@
+export async function GET(){return Response.json({application:"Lock Manager",status:"ok"},{headers:{"Cache-Control":"no-store"}})}
