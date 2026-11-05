@@ -1,3 +1,5 @@
+> Updated credential finding: the published BigQuery lock schema excludes combinations and refreshes hourly. Earlier reporting-connector checks do not establish the BigQuery credential's secret access. See [credential-configuration.md](credential-configuration.md).
+
 # One-time inventory migration: structural dry run
 
 2026-11-05, reporting source: **As of Nov 5, 7:40 PM UTC** for door_locks and facilities; **As of Nov 5, 7:55 PM UTC** for units. Read-only structural reconciliation; no production lock/facility/assignment/combination writes.
