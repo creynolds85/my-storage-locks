@@ -8,3 +8,8 @@ Run npm test and npm run build before release.
 Database schema and acceptance SQL are tracked in supabase/. All mutations are transactional RPCs; database policies enforce active accounts, live sessions, and facility memberships. Combination ciphertext and encryption keys are in a private schema. Audit events never contain combination values.
 No sample inventory is seeded in production. Test SQL runs in a rollback-only transaction.
 GitHub repository must be a separate private repository named my-storage-locks.
+
+
+## Cubby operations and controlled SMS activation
+
+See [automation implementation and activation](docs/automation-implementation.md) for operational access requirements, one-minute worker scheduling, draft release rules/templates, and live-off gates. [Migration reconciliation](docs/cubby-migration-reconciliation.md) covers the 1,146 source locks; no production inventory import has been applied.

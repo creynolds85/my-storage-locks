@@ -1,0 +1,3 @@
+import fs from 'node:fs/promises';import {migrationDryRun} from '../lib/automation/migration.mjs';
+const [sourcePath,existingPath]=process.argv.slice(2);if(!sourcePath){console.error('Usage: node scripts/cubby-migration-dry-run.mjs PRIVATE_SNAPSHOT.json [PRIVATE_EXISTING.json]');process.exit(2)}
+try{const source=JSON.parse(await fs.readFile(sourcePath,'utf8'));const existing=existingPath?JSON.parse(await fs.readFile(existingPath,'utf8')):[];process.stdout.write(JSON.stringify(migrationDryRun(source,existing),null,2)+'\n')}catch{console.error('Snapshot reconciliation failed. Check the private input files; no records were applied.');process.exitCode=1}

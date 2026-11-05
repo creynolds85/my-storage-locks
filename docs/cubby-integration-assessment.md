@@ -1,3 +1,5 @@
+> Historical pre-implementation assessment. The current implementation and confirmed normal Cubby entitlement are documented in [automation-implementation.md](automation-implementation.md). Runtime infrastructure is now implemented with live SMS disabled.
+
 # Cubby integration assessment — My Storage Locks
 Date: November 5, 2026. Investigation only; no production inventory writes or Cubby write-back.
 
