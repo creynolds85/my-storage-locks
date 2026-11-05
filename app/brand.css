@@ -51,7 +51,7 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,te
 @media(max-width:720px){
   .auth-intro{min-height:95px;padding:20px 25px;border:0;border-bottom:1px solid #e4e7ec;display:block}
   .auth-intro>.brand{font-size:17px}.auth-intro>.brand img{width:27px;height:34px}
-  .auth-intro>div:nth-child(2){display:none}.auth-main{min-height:calc(100vh - 95px);padding:29px 25px 35px}
+  .auth-intro>.auth-message{display:block;margin-top:20px}.auth-intro>.auth-message .eyebrow,.auth-intro>.auth-message>p{display:block}.auth-main{min-height:0;padding:29px 25px 35px}
   .auth-logo{margin-bottom:27px}.auth-card h2{font-size:27px}
   .breadcrumb{display:none}.mobile-brand{display:flex;align-items:center;justify-content:center;flex-shrink:0}
   .mobile-brand img{width:33px;height:39px;display:block;object-fit:contain}
@@ -98,3 +98,8 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,te
 @media(max-width:380px){.stat{padding:14px 12px}.stat>span{font-size:15px}}
 
 .operations-panel .section-heading{padding-bottom:16px}.sync-summary{margin:0 23px 18px;padding:14px 16px;background:#f6f8fb;border:1px solid #e4e7ec;border-radius:8px}.sync-summary>div{display:flex;gap:8px;align-items:center;color:#475467}.sync-summary.stale>div{color:#92400e}.sync-summary p{font-size:12px;margin-top:5px}.operations-error{padding:0 23px 18px;color:#b42318;font-size:12px}.operations-empty{padding:4px 23px 22px;color:#667085;font-size:13px}.action-item{padding:18px 23px;border-top:1px solid #eaecf0;display:flex;gap:18px;justify-content:space-between;align-items:center}.action-item h3{font-size:15px}.action-item p{font-size:12px;margin-top:6px}.action-item time{display:block;font-size:11px;color:#667085;margin-top:8px}.action-item .secondary{font-size:12px;white-space:normal;max-width:210px;flex-shrink:0}.action-states{display:flex;gap:8px 18px;flex-wrap:wrap;margin-top:10px;font-size:11px;color:#667085}.action-states strong{color:#344054}@media(max-width:720px){.sync-summary{margin:0 16px 16px}.action-item{padding:16px;align-items:stretch;flex-direction:column;gap:12px}.action-item .secondary{max-width:none}.action-states{flex-direction:column;gap:6px}}
+
+/* Daily login copy uses the same branding and remains visible at every width. */
+.auth-page{grid-template-columns:minmax(0,.95fr) minmax(0,1.05fr)}
+.auth-message{min-width:0}.auth-intro h1.daily-login-message{font-size:clamp(32px,4.3vw,64px);line-height:1.12;overflow-wrap:break-word;text-wrap:balance}
+@media(max-width:720px){.auth-intro{min-height:0}.auth-intro>.auth-message .eyebrow{margin-bottom:10px}.auth-intro h1.daily-login-message{font-size:clamp(25px,6.8vw,32px);line-height:1.18;letter-spacing:-.7px;margin:0 0 12px}.auth-intro>.auth-message>p{font-size:14px;line-height:1.5}}
