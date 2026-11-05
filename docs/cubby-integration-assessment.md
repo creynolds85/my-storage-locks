@@ -1,6 +1,8 @@
 # Cubby integration assessment — My Storage Locks
 Date: November 5, 2026. Investigation only; no production inventory writes or Cubby write-back.
 
+**Architecture revised:** My Storage Locks is the independent system of record after a one-time Cubby inventory migration. The earlier recommendation for ongoing Cubby lock authority has been withdrawn. See [Independent inventory and operational integration plan](independent-inventory-plan.md), which governs implementation. Inventory counts below describe the earlier investigated snapshot, not a completed migration.
+
 ## Finding
 Do not ask staff to recreate the existing inventory. The connected Cubby reporting service exposes 1,146 physical locks, with serials and combinations populated on every record. Thirteen facilities have locks; 23 facility records are available.
 
@@ -115,32 +117,31 @@ This is the proposed implementation, not a completed import.
 2. Pull into private encrypted staging with an import batch ID, source IDs, raw status, source unit/facility IDs, source timestamps where available and retrieval time. Keep serials, combinations and unit labels as strings. Do not put combinations in logs, audit JSON, analytics or client bundles.
 3. Produce a dry run: facility matches/new facilities, new locks, exact existing matches, duplicate/conflicting serials, changed combinations, assignment conflicts and unresolved statuses. Review roster and status rules before apply.
 4. Store a unique source organization + source lock ID mapping to each local lock UUID. Use facility + case-insensitive serial only as a secondary conflict check. A transfer keeps the same source lock identity.
-5. Apply bounded insert-only transactions, creating only absent source-owned records. Existing records, combinations, assignments and histories remain untouched. Skip exact repeats without creating activity; quarantine differences instead of overwriting them. Recheck for changes under the transaction before insertion.
+5. Apply bounded insert-only transactions, creating only absent local records from the approved migration snapshot. Existing records, combinations, assignments and histories remain untouched. Skip exact repeats without creating activity; quarantine differences instead of overwriting them. Recheck for changes under the transaction before insertion.
 6. Preserve initial source assignments as imported snapshots. Do not fabricate historical assignment dates or staff identity from the import timestamp or lock creation date. Retain genuine source timestamps separately from imported-at time.
 7. Reconcile totals by facility/status and source lock ID. Re-run the same batch to prove it inserts zero additional records. Record batch provenance and audit results.
 8. Keep company stock and unknown facilities unresolved if encountered rather than fabricating a facility.
 
 The existing CSV importer is transactional and preserves the existing underlying statuses, but accepts a maximum of 1,000 rows per call, requires a facility and physical color, and has no Cubby source-ID/replay mapping or tenant-held representation. It is not a safe complete Cubby adapter. Do not feed all 1,146 records through it blindly or substitute default Available statuses.
 
-## Ongoing synchronization recommendation
-Use Cubby as the source of truth for imported serials, combinations, facility placement, attached units and source status. Lock Manager becomes the operational viewing/search layer, with locally owned notes and physical-color enrichment kept separate. Imported source-owned fields should not be independently editable in two systems while write-back is prohibited; preserve existing local-only workflows for separately owned records.
+## Authority after the one-time migration
+My Storage Locks owns physical locks, combinations, availability/condition, facility placement, assignments, release, recovery and physical-color records. Original Cubby IDs and raw source status remain migration provenance only. No recurring Cubby lock poll or lock-status sync may update these local records. Local lock operations must work with the paid Cubby lock feature removed and its migration credential revoked.
 
-Start with a read-only server-side snapshot/diff poll after Cubby confirms rate and completeness behavior. A proposed five-minute interval is a starting point for evaluation, not an established service guarantee. Retain last-success/as-of time, retries with backoff and a daily full reconciliation. No automatic deletions when a response is partial, fails, or omits a previously seen lock.
+Cubby supplies only independently entitled operational facts: facility/unit identity, leases, completed move-ins, delinquency/payment clearance, tenant identity and communication preferences. Those facts may trigger a local notification evaluation; they cannot create, move, release, or reclassify physical locks automatically.
 
-Do not overwrite existing records under the current authorization. For any later approved sync, define source ownership and conflict handling explicitly: if a local record changed since the previous sync, or a combination differs, stop and present a reviewed conflict instead of using last-write-wins. Keep both source and local provenance.
+The initial snapshot can use a complete authenticated export, supported API export or confirmed warehouse service-account access. Temporary lock-read permissions are retired after reconciliation/cutover. They are not a recurring runtime requirement. The existing service account was confirmed in Cubby's October 7 support reply; its present scope, freshness and post-feature entitlement still require validation.
 
-Documented webhooks include move-in/out, auction scheduled/entered/exited, Tenant Overlocked and Overlock Remove Needed. They can accelerate a subsequent authoritative refetch. They do not document complete lock-register/return/transfer/disable/combination-change coverage, so they cannot replace reconciliation. Their activation is arranged with Cubby support. Confirm delivery authentication, replay identifiers and retries before using them. No outbound Cubby mutation endpoints are part of this approach.
+For messaging triggers, Cubby's physical-lock-specific webhooks cannot be assumed to survive removal of the feature. Rental/payment facts need an independent API/webhook contract. See the governing plan for candidate triggers, consent, delivery auditing and explicit SMS release gates.
 
 ## Confirmed limitations and unresolved access
 - The connected reporting tool can read the fields today; an authenticated production REST fetch has not been performed. No Cubby website credential is configured.
-- The API reference's Search role lists facilities/units/leases/auctions but does not list Locks. The Locks role lists search plus register/disable/attach/return/transfer. Request least-privilege lock search plus required related reads; do not assume an existing reporting or coverage key grants it.
-- Read availability of combo under the issued credential must be checked. Customer PII is unnecessary for the initial lock import and should not be requested.
-- Lock Search does not document pagination, a complete-result count, delta cursor, updatedAt or a rate limit. Confirm full enumeration for more than 1,000 locks and a safe polling cadence. The interactive reporting tool's 1,000-row result cap is another reason not to treat it as the runtime import transport.
+- The API reference's Search role lists facilities/units/leases/auctions but does not list Locks. The Locks role lists search plus register/disable/attach/return/transfer. For migration only, validate complete lock-read/export access. For ongoing operation, request independently entitled operational reads, customer phone/preference PII and required compliance reads; no recurring Locks role is required by the design.
+- Read availability of combo under the issued credential must be checked. Customer PII is unnecessary for the initial lock import. Ongoing authorized-tenant SMS requires narrowly scoped phone/identity/preference PII access and consent evidence.
+- Lock Search does not document pagination, a complete-result count, delta cursor, updatedAt or a rate limit. Confirm full enumeration for more than 1,000 locks for the one-time export; do not design recurring physical-lock polling. The interactive reporting tool's 1,000-row result cap is another reason not to treat it as the runtime import transport.
 - Physical color, lock assignment purpose, full historical assignment/audit events, and lock-specific update webhooks are not confirmed on the documented Lock Search contract.
 - Ten facilities currently return zero lock rows. That is not proof they have no physical locks; verify roster/source coverage before requesting any manual setup.
 - Two tenant-held locks need maintenance, and the app cannot currently represent tenant-held source status. Preserve these distinctions.
 - No integration, import job, facility creation, inventory mutation, credential copying or Cubby write-back was implemented during this investigation.
 
 ## Recommended next gate
-Approve Cubby as the source of truth and settle faithful tenant-held/unresolved-assignment representation. Obtain/validate the narrowly scoped server-side read access and enumeration behavior. Then implement the staged dry run and show its complete reconciliation before any inventory apply. Continue to prohibit Cubby write-back unless separately approved.
-
+The user has selected My Storage Locks as the independent physical-lock system of record. Validate the one-time export route and dry-run reconciliation; retain unresolved source classifications without inventing assignments. Separately confirm operational API/webhook entitlement without the paid lock feature, then implement and test notification evaluation in dry-run mode. Live combination SMS still requires focused end-to-end tests and explicit approval of release conditions and templates. No Cubby write-back is authorized.
