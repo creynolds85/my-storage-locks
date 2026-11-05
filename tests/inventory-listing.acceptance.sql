@@ -1,0 +1,41 @@
+begin;
+do $$begin perform set_config('inventory_qa.baseline',(select count(*)::text from public.locks),true);end$$;
+insert into auth.users(id,email) values('91000000-0000-0000-0000-000000000001','inventory-qa@example.invalid');
+insert into public.profiles(id,email,name,role) values('91000000-0000-0000-0000-000000000001','inventory-qa@example.invalid','Inventory QA','employee');
+insert into auth.sessions(id,user_id) values('92000000-0000-0000-0000-000000000001','91000000-0000-0000-0000-000000000001');
+insert into public.facilities(id,name,identifier) values('93000000-0000-0000-0000-000000000001','z Facility QA','INVENTORY-QA-Z'),('93000000-0000-0000-0000-000000000002','A Facility QA','INVENTORY-QA-A');
+insert into public.memberships values('91000000-0000-0000-0000-000000000001','93000000-0000-0000-0000-000000000001');
+insert into public.locks(serial,color,facility_id,created_at,updated_at)
+select serial,'Unknown','93000000-0000-0000-0000-000000000001',now()-n*interval '1 day',now()-n*interval '1 day' from unnest(array['a10','A2','10','2','0002','1111LLL1','272L7777','86DH56R4','A41A8H3X','N63P8633']) with ordinality t(serial,n);
+insert into public.locks(serial,color,facility_id) values('Z99','Unknown','93000000-0000-0000-0000-000000000002');
+do $$ begin perform set_config('request.jwt.claims','{"sub":"91000000-0000-0000-0000-000000000001","role":"authenticated","session_id":"92000000-0000-0000-0000-000000000001"}',true);end$$;
+set local role authenticated;
+do $$declare r jsonb;a jsonb;b jsonb;c jsonb;denied boolean:=false;begin
+r:=public.inventory_listing('',null,null,'serial',100,0);
+if (r->>'total')::int<>10 then raise exception 'FAIL all-facility search escaped RLS';end if;
+select jsonb_agg(x->>'serial') into a from jsonb_array_elements(r->'items') x;
+if a<>'["0002","2","10","1111LLL1","272L7777","86DH56R4","A2","a10","A41A8H3X","N63P8633"]'::jsonb then raise exception 'FAIL natural order or original serial formatting: %',a;end if;
+r:=public.inventory_listing('',null,null,'facility_serial',3,0,false);if jsonb_array_length(r->'items')<>3 or r->>'total' is not null or r->>'hasMore'<>'true' then raise exception 'FAIL bounded search';end if;
+r:=public.inventory_listing('n',null,null,'serial',20,0);if (r->>'total')::int<>1 or r->'items'->0->>'serial'<>'N63P8633' then raise exception 'FAIL first-character case-insensitive search';end if;
+r:=public.inventory_listing('p86',null,null,'serial',20,0);if (r->>'total')::int<>1 then raise exception 'FAIL middle-of-serial match';end if;
+r:=public.inventory_listing('00',null,null,'serial',20,0);if r->'items'->0->>'serial'<>'0002' then raise exception 'FAIL leading zeros';end if;
+a:=public.inventory_listing('',null,null,'serial',3,0)->'items';b:=public.inventory_listing('',null,null,'serial',3,3)->'items';c:=public.inventory_listing('',null,null,'serial',6,0)->'items';if a||b<>c then raise exception 'FAIL page order';end if;
+r:=public.inventory_listing('',null,null,'updated_at',100,0);if r->'items'->0->>'serial'<>'a10' then raise exception 'FAIL explicit date sort';end if;
+begin perform public.inventory_listing('','93000000-0000-0000-0000-000000000002',null,'serial',20,0);exception when insufficient_privilege then denied:=true;end;if not denied then raise exception 'FAIL unauthorized facility';end if;
+if (r->'items'->0)?'combination' then raise exception 'FAIL combination in search response';end if;
+end$$;
+reset role;
+insert into public.memberships values('91000000-0000-0000-0000-000000000001','93000000-0000-0000-0000-000000000002');
+set local role authenticated;
+do $$ declare r jsonb;begin
+r:=public.inventory_listing('',null,null,'facility_serial',100,0);if (r->>'total')::int<>11 or r->'items'->0->>'serial'<>'Z99' or r->'items'->1->>'serial'<>'0002' then raise exception 'FAIL facility-first order';end if;
+r:=public.inventory_listing('',null,null,'facility_serial',3,0,false);if r->'items'->0->>'serial'<>'Z99' or r->'items'->1->>'serial'<>'0002' then raise exception 'FAIL bounded facility grouping';end if;
+r:=public.inventory_listing('','93000000-0000-0000-0000-000000000001',null,'serial',100,0);if (r->>'total')::int<>10 then raise exception 'FAIL selected facility filtering';end if;
+end$$;
+reset role;
+update public.profiles set role='admin' where id='91000000-0000-0000-0000-000000000001';
+set local role authenticated;
+do $$declare r jsonb;begin r:=public.inventory_listing('',null,null,'facility_serial',500,0);if (r->>'total')::int<>current_setting('inventory_qa.baseline')::int+11 then raise exception 'FAIL administrator all-facility access';end if;end$$;
+reset role;
+select 'PASS: first-character, substring, case, leading zeros, natural serial order, facility grouping, selected scope, explicit sorting, stable pagination, employee RLS, admin visibility, no combination disclosure' as result;
+rollback;

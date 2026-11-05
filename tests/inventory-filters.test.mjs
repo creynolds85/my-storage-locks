@@ -53,3 +53,10 @@ test('all imported states count in Total without assigning unknown purposes to a
  for(const id of ['unclassified','tenant_held','maintenance','damaged'])assert.deepEqual(inventoryFilters.find(c=>c.id===id).statuses,[id]);
  assert.equal(inventoryCategories.length,6);
 });
+
+test('multi-facility employees can select only their authorized all-facility scope',()=>{
+ assert.equal(readInventoryRoute('?facility=all','employee',facilities,'a').scope,'all');
+ assert.equal(readInventoryRoute('','employee',facilities,'').scope,'all');
+ assert.equal(readInventoryRoute('?facility=a','employee',facilities,'all').scope,'a');
+ assert.equal(readInventoryRoute('?facility=unauthorized','employee',facilities,'a').scope,'all');
+});
