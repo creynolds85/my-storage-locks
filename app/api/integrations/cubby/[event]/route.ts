@@ -18,6 +18,6 @@ export async function POST(request:Request,context:{params:Promise<{event:string
   const rt=runtime(process.env,{sender:createTwilioSender(process.env)});
   const saved=await rt.store.call('inbox_accept',{eventType,reference,occurredAt,key:digest([eventType,reference.leaseId,occurredAt].join(':'))});
   if(saved?.id)after(async()=>{try{const processed=await drainInbox(rt,{id:saved.id,limit:1});for(const id of processed.notificationIds||[])await drainOutbox(rt,{id,limit:1})}catch{console.error('automation_event_processing_failed')}});
-  return Response.json({accepted:true,duplicate:!saved?.id},{status:202,headers:NO_STORE});
+  return Response.json({accepted:true,duplicate:!saved?.id},{status:200,headers:NO_STORE});
  }catch{console.error('automation_event_accept_failed');return errorResponse('durable_event_accept_failed');}
 }
