@@ -139,3 +139,5 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,te
 .secret-entry{display:flex;gap:8px;align-items:stretch}.secret-entry input{min-width:0;flex:1}.secret-entry button{flex-shrink:0;min-height:46px;padding:10px 12px}.physical-confirmation{align-items:flex-start;margin-top:24px;line-height:1.6}.physical-confirmation input{margin-top:2px}.form-guidance{color:#b42318;font-size:13px}
 @media(min-width:951px){.table-head,.lock-row{grid-template-columns:1.3fr 100px 1.2fr 90px 16px!important}.inventory-section:has(.all-facilities) .table-head,.all-facilities .lock-row{grid-template-columns:1.2fr 80px 1.2fr 80px 1.2fr 16px!important}.inventory-section:has(.all-facilities) .table-head>span:nth-last-child(2){display:block!important}}
 @media(max-width:720px){.secret-entry button{font-size:13px}.confirmation-actions{display:grid;grid-template-columns:1fr 1fr}.confirmation-actions button{padding:12px;font-size:13px}.readonly-serial strong{font-size:22px}.combination-warning{padding:14px}.combination-warning p{font-size:14px}}
+
+@media(min-width:721px){.auth-intro>.auth-message{margin-block:auto}}
