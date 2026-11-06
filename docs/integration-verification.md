@@ -1,3 +1,40 @@
+# Current production verification — November 6, 2026
+
+The existing Operator Bearer token is present and authenticated. Scoped Facilities
+Search returned all 23 mapped facilities and no unexpected facilities. Units,
+Leases, Customers (including contact phone and SMS suppression), Payments,
+Ledgers, Auctions and Delinquency Exemptions Search succeeded. Single-lease
+compliance expansion is accessible. The representative verification completed in
+1.052 seconds; calls took 80–413 ms. A broad lease/compliance expansion timed out
+at 10 seconds; compliance is verified by individual lease instead.
+
+The existing poller ran in shadow mode across all 23 facilities: 6,148 units,
+69 API requests, 3.171 seconds, no database writes and no SMS. Source updates
+were absent in that observation window, so real transition latency is unmeasured.
+Provider rate limits remain unpublished; observed load completed without 429.
+
+Production operational reads were then enabled with live SMS still disabled.
+The active-record baseline completed at 2026-11-06 16:54:39 America/New_York:
+4,387 lease snapshots, 6,148 unit mappings, and 23 facility cursors. Initial
+snapshot writes are bounded to eight concurrent requests; historical leases are
+excluded from initial seeding. Follow-up scheduled polls succeeded in 5.223 and
+6.281 seconds. Operational polling runs before warehouse diagnostics. No physical
+locks, combinations or assignments were modified.
+
+A dummy public request with nonexistent rental details returned the fixed neutral
+202 response and was blocked as rental_unverified, without a notification.
+Real carrier delivery and controlled Cubby payment/rental transition acceptance
+remain pending. A quiet source record's old updatedAt is not a replication delay.
+General SMS stays disabled in both deployment and database approval gates.
+
+Cubby Support confirmed no outbound webhooks. Operational monitoring uses direct
+API polling; the earlier webhook discussion below is historical and superseded.
+The configured key was neither replaced nor exposed.
+
+---
+
+## Historical pre-migration investigation
+
 # Integration verification results — November 5, 2026
 
 Observed production worker state at **4:57 PM America/New_York**. No live combination messages were enabled, no Twilio account settings were changed, and no physical inventory was written.

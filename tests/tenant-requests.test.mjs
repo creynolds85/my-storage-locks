@@ -50,7 +50,7 @@ function runtimeFixture(type='vacant'){
  const context={facilityId:f.request.facilityId,assignments:[f.assignment],consent:f.consent,policy:f.input.policy};
  const client={search:async(resource)=>{if(options.sourceFailure)throw Error('source outage fixture');switch(resource){
  case 'units/search':return {units:[{unitId:'unit_TEST',facilityId:'fac_TEST',leaseId:'lease_TEST',name:'001A',free:false}]};
- case 'leases/search':return {leases:[{leaseId:'lease_TEST',unitId:'unit_TEST',facilityId:'fac_TEST',customerId:'customer_TEST',moveOutDate:null,moveInDate:'2026-01-01',createdAt:earlier,updatedAt:iso,overlockNeeded:false}],compliances:[{leaseId:'lease_TEST',documents:[{status:options.docs?'APPROVED':'PENDING'}]}]};
+ case 'leases/search':return {leases:[{leaseId:'lease_TEST',unitId:'unit_TEST',facilityId:'fac_TEST',customerId:'customer_TEST',moveOutDate:null,paid:options.paid,moveInDate:'2026-01-01',createdAt:earlier,updatedAt:iso,overlockNeeded:false}],compliances:[{leaseId:'lease_TEST',documents:[{status:options.docs?'APPROVED':'PENDING'}]}]};
  case 'customers/search':return {customers:[{customerId:'customer_TEST',contact:{phone:options.phone},communicationPreferences:{sms:{suppressed:false}}}]};
  case 'ledgers/search':return {ledgers:[{leaseId:'lease_TEST',balances:{totalDue:options.paid?0:100}}]};
  case 'payments/search':return {payments:[{createdAt:iso,status:options.paid?'SUCCEEDED':'APPROVING'}]};
