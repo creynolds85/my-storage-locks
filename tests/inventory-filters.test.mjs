@@ -2,10 +2,10 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {inventoryCategories,inventoryFilters,categoryCount,applyStatusFilter,readInventoryRoute,inventoryRouteUrl} from '../lib/inventory-filters.mjs';
 const facilities=[{id:'a'},{id:'b'}];
-test('six dashboard categories partition the existing statuses without double counting',()=>{
- const counts={available:7,overlock:3,vacant:2,auction:4,missing:5,retired:6};
- assert.equal(inventoryCategories.length,6);
- assert.deepEqual(inventoryCategories.map(c=>c.cardLabel||c.label),['Total Locks','Available','Overlocked','Vacant','Auction','Missing / Damaged']);
+test('seven dashboard categories partition the existing statuses without double counting',()=>{
+ const counts={available:7,overlock:3,vacant:2,auction:4,missing:5,retired:6,unclassified:0,tenant_held:0,maintenance:0};
+ assert.equal(inventoryCategories.length,7);
+ assert.deepEqual(inventoryCategories.map(c=>c.cardLabel||c.label),['Total Locks','Available','Overlocked','Vacant','Auction','Missing / Damaged','Other']);
  assert.equal(categoryCount(counts,''),27);assert.equal(categoryCount(counts,'unavailable'),11);assert.equal(categoryCount(counts,'available'),7);
  assert.deepEqual(inventoryCategories.slice(1).flatMap(c=>c.statuses).sort(),[...Object.keys(counts),"damaged"].sort());
  assert.equal(categoryCount({},'unavailable'),0);
@@ -51,7 +51,7 @@ test('all imported states count in Total without assigning unknown purposes to a
  const counts={available:482,vacant:556,overlock:16,auction:8,unclassified:43,tenant_held:5,missing:24,damaged:10,maintenance:2};
  assert.equal(categoryCount(counts,''),1146);assert.equal(categoryCount(counts,'unavailable'),34);
  for(const id of ['unclassified','tenant_held','maintenance','damaged'])assert.deepEqual(inventoryFilters.find(c=>c.id===id).statuses,[id]);
- assert.equal(inventoryCategories.length,6);
+ assert.equal(inventoryCategories.length,7);
 });
 
 test('multi-facility employees can select only their authorized all-facility scope',()=>{

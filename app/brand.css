@@ -126,3 +126,16 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,te
  .inventory-toolbar>select{font-size:14px}.dashboard-search-section{margin-bottom:20px}
  .dashboard-lock-result{padding:16px;min-height:96px}.dashboard-result-serial{font-size:17px}.dashboard-result-facility{font-size:13px}.search-feedback{padding:14px 16px}
 }
+
+/* Everyday inventory controls; audit and integration details remain on the backend. */
+.other{--status-color:#7C3AED}
+@media(min-width:1640px){.stats-grid{grid-template-columns:repeat(4,minmax(0,1fr))}.stat.total{grid-column:span 2}}
+@media(min-width:721px) and (max-width:1639px){.stats-grid .stat.total{grid-column:1/-1}}
+.readonly-serial{padding:16px;background:#f6f8fb;border:1px solid #e4e7ec;border-radius:8px;margin:20px 0}
+.readonly-serial span{display:block;color:#667085;font-size:12px;margin-bottom:7px}.readonly-serial strong{display:block;font-family:ui-monospace,SFMono-Regular,Consolas,monospace;font-size:23px;color:#252d36;overflow-wrap:anywhere}
+.combination-change-section{border-top:1px solid #e4e7ec;margin-top:28px;padding-top:24px}.combination-change-section h3{font-size:16px}.combination-change-section p{font-size:13px;color:#667085;margin:9px 0 16px}
+.combination-warning{padding:16px;border:1px solid #f3d5a4;background:#fffbf2;border-radius:8px}.combination-warning p{font-size:14px;line-height:1.6;margin:0 0 14px}.combination-warning p:last-child{margin-bottom:0}
+.confirmation-actions{display:flex;gap:12px;justify-content:flex-end;margin-top:22px;flex-wrap:wrap}.confirmation-actions button{min-height:46px;white-space:normal}
+.secret-entry{display:flex;gap:8px;align-items:stretch}.secret-entry input{min-width:0;flex:1}.secret-entry button{flex-shrink:0;min-height:46px;padding:10px 12px}.physical-confirmation{align-items:flex-start;margin-top:24px;line-height:1.6}.physical-confirmation input{margin-top:2px}.form-guidance{color:#b42318;font-size:13px}
+@media(min-width:951px){.table-head,.lock-row{grid-template-columns:1.3fr 100px 1.2fr 90px 16px!important}.inventory-section:has(.all-facilities) .table-head,.all-facilities .lock-row{grid-template-columns:1.2fr 80px 1.2fr 80px 1.2fr 16px!important}.inventory-section:has(.all-facilities) .table-head>span:nth-last-child(2){display:block!important}}
+@media(max-width:720px){.secret-entry button{font-size:13px}.confirmation-actions{display:grid;grid-template-columns:1fr 1fr}.confirmation-actions button{padding:12px;font-size:13px}.readonly-serial strong{font-size:22px}.combination-warning{padding:14px}.combination-warning p{font-size:14px}}
