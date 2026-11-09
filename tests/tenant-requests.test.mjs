@@ -7,7 +7,7 @@ import {drainInbox,drainOutbox} from '../lib/automation/worker.mjs';
 const now=Date.now(),iso=new Date(now).toISOString(),earlier=new Date(now-60000).toISOString();
 const env={CUBBY_API_KEY:'fixture-only',CUBBY_ORGANIZATION_ID:'org_TEST',CUBBY_OPERATIONAL_ACCESS_VERIFIED:'true',CUBBY_RATE_LIMIT_VERIFIED:'true',LOCKS_LIVE_SMS_ENABLED:'false'};
 function fixture(type='vacant'){
- const request={id:randomUUID(),facilityId:'local-facility',sourceOrgId:'org_TEST',sourceFacilityId:'fac_TEST',unit:'001A',unitHash:'fixture-unit-hash',phoneDigest:digest('+17045550100'),expiresAt:new Date(now+900000).toISOString()};
+ const request={id:randomUUID(),smsConsent:true,facilityId:'local-facility',sourceOrgId:'org_TEST',sourceFacilityId:'fac_TEST',unit:'001A',unitHash:'fixture-unit-hash',phoneDigest:digest('+17045550100'),expiresAt:new Date(now+900000).toISOString()};
  const facts={verified:true,verifiedAt:iso,occurredAt:earlier,facilityId:'fac_TEST',unitId:'unit_TEST',leaseId:'lease_TEST',customerId:'customer_TEST',active:true,paymentClear:true,overlockNeeded:false,auctionClear:true,restrictionsClear:true,rentalCompleted:true,rentalAccessReady:true,releaseAccessReady:true,requirementsSatisfied:true,moveInAllowed:true,clearanceTransition:true,episodeId:'episode_TEST'};
  const assignment={id:'assignment_TEST',lockId:'lock_TEST',lockVersion:1,lockStatus:type,type,facilityId:'fac_TEST',unitId:'unit_TEST',releasedAt:null,assignedAt:null};
  const recipient={phone:'+17045550100',customerId:'customer_TEST',verified:true,suppressed:false};
