@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {verifyPreactivation} from '../lib/automation/preactivation-verification.mjs';
 import {fetchLeaseFacts} from '../lib/automation/cubby.mjs';
 import {verifyCampaignTemplates} from '../lib/automation/twilio-verification.mjs';
-import {renderMessage} from '../lib/automation/policy.mjs';
+import {renderMessage,evaluateNotification} from '../lib/automation/policy.mjs';
 
 function fixture(){
  const stamp=new Date().toISOString(),reference={leaseId:'lease_fixture',facilityId:'fac_fixture',unitId:'unit_fixture',customerId:'customer_fixture'};
@@ -69,4 +69,15 @@ test('submitted campaign inspection compares renderer without returning provider
   {clientFactory:()=>({messaging:{v1:{services:()=>({usAppToPerson:{list:async()=>[{campaignStatus:'IN_PROGRESS',usAppToPersonUsecase:'ACCOUNT_NOTIFICATION',messageSamples:[renderMessage('overlock_clearance',data),renderMessage('new_rental',data)],messageFlow:'private registration narrative'}]}})}}})});
  assert.equal(r.campaigns[0].productionOverlockExactSample,true);assert.equal(r.campaigns[0].productionRentalExactSample,true);
  assert.equal(r.campaignWrites,0);assert.equal(r.smsSubmitted,0);assert.ok(!JSON.stringify(r).includes('private registration narrative'));assert.ok(!JSON.stringify(r).includes('[Combination]'));
+});
+test('verified imported binding predates a new event without inventing assignment dates',async()=>{
+ const f=fixture();const record=await fetchLeaseFacts(f.client,f.reference,{contractVerified:true});
+ const assignment={...f.context.assignments[0],assignedAt:null,importedAt:'2026-01-01T00:00:00Z',mappingVerifiedAt:'2026-01-01T00:00:01Z',importedMappingVerified:true};
+ const consent={proofId:'controlled-fixture',customerId:f.reference.customerId,phone:record.recipient.phone,purpose:'lock_access',valid:true};
+ const input={kind:record.kind,facts:record.facts,recipient:record.recipient,assignments:[assignment],consent,policy:f.context.policy};
+ assert.equal(evaluateNotification(input).eligible,true);assert.equal(assignment.assignedAt,null);
+ for(const change of [{importedMappingVerified:false},{importedAt:null},{mappingVerifiedAt:null},{importedAt:'2999-01-01T00:00:00Z'},{mappingVerifiedAt:'2999-01-01T00:00:00Z'},{assignedAt:'2999-01-01T00:00:00Z'}]){
+  assert.equal(evaluateNotification({...input,assignments:[{...assignment,...change}]}).reason,'assignment_changed');
+ }
+ assert.equal(evaluateNotification({...input,consent:null}).reason,'consent_unverified');
 });
