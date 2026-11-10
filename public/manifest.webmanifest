@@ -1,7 +1,7 @@
 {
   "name": "Lock Manager — My Storage Locks",
   "short_name": "Lock Manager",
-  "start_url": "/",
+  "start_url": "/dashboard",
   "display": "standalone",
   "background_color": "#FFFFFF",
   "theme_color": "#252D36",

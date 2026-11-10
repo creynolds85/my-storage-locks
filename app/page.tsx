@@ -1,8 +1,6 @@
-import {connection} from 'next/server';
-import LockManager from '@/components/lock-manager';
-import {dailyLoginMessage} from '@/lib/login-messages.mjs';
+import TenantRequestPage from '@/components/tenant-request-page';
+import LegacyManagerRedirect from '@/components/legacy-manager-redirect';
+export const metadata={title:'Request your lock combination | My Storage Locks',description:'Request verified facility lock access instructions or contact your storage facility.'};
 export default async function Page(){
-  // Resolve against the server clock on every page request, outside prerender/cache.
-  await connection();
-  return <LockManager loginMessage={dailyLoginMessage()}/>;
+ return <><LegacyManagerRedirect/><TenantRequestPage/></>;
 }
