@@ -15,3 +15,13 @@ Exactly six issues are supported. Exception and missing-assignment tasks reuse t
 Optional notes are supported. Photos are not introduced: the existing application has no photo storage/upload workflow. No Cubby writes, lock mutations, combination reads, SMS dispatch, or Twilio configuration changes are part of this feature.
 
 Focused verification: `node --test tests/walkthrough.test.mjs`, `tests/walkthrough.acceptance.sql` (transaction rolled back), TypeScript and production build. The SQL fixtures cover weekly persistence/rollover, required-lock warnings, issue deduplication/corrections, facility permissions, attribution, stale-source refusal and simultaneous-manager revision conflicts.
+
+## Compact mobile inspection controls
+
+Collapsed cards use an approximately 86–100px row for ordinary unit labels, with a separate 44px issue target and 66×64px right-side confirmation button. Missing-assignment warnings and expanded issue controls may increase card height. The progress header is compact; previous weeks are under History. Next Unit is a direct action. Confirmation advances only after the server saves, follows the existing roster sequence (wrapping to earlier remaining units), and respects reduced-motion preferences. The card is not a confirmation target.
+
+Confirmation and issues are independent. Existing legacy observations and timestamps are interpreted without rewriting their original fields; new explicit operations update only confirmation, issue, or notes. Undo changes only confirmation. A unit with a documented exception still counts as inspected, and an issue remains visible when confirmed. Issue tasks are updated only by issue/notes edits, never by confirmation or Undo. Every new change is recorded privately with manager attribution. Previous inspection records remain read-only.
+
+Successful saves return the changed entry only. Memoized cards retain unchanged object references; no roster reload follows a successful save. One-minute source refresh and existing revision/eligibility checks remain in place. Collapsed cards use browser content visibility to reduce painting work on long rosters. The latest confirmation can be undone from the persistent accessible feedback bar or the unit's confirmation button.
+
+Focused checks for this update: `tests/walkthrough-speed.test.mjs`, `tests/walkthrough-card.test.mjs`, and rollback-only `tests/walkthrough-speed.acceptance.sql`. Browser-based visual measurement is limited by the execution environment's Chromium socket restrictions; rendered card contracts, touch-target CSS, navigation logic, database persistence and production compilation are checked separately.
