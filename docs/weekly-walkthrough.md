@@ -1,0 +1,17 @@
+# Weekly manager walk-through
+
+Manager route: `/dashboard?view=walkthrough&facility=<authorized facility>`.
+
+Cubby `POST /v1/units/search` documents `walkthroughOrder`; its reporting `units.walkthrough_order` also exposes the configured sequence. The new server-only refresh reads the Operator API, with current facility-scoped leases (customer name expansion) and auction records. It stores only the minimal unit/tenant-name/expected-state projection, never contact details, balances, access credentials or combinations. Completed/cancelled auctions are excluded; active auctions take precedence over overlocks. Unverifiable occupancy is visibly blocked from normal confirmation.
+
+Units sort by Cubby's numeric position. Tied/missing positions use natural unit-number order, with a deterministic original-label/source-ID tie break. A week's initial sequence stays fixed after inspection; new units append. The next week adopts the latest Cubby sequence. No separate route is maintained. Refresh runs on opening a facility and once per minute while its walk-through remains open; it does not change the existing automation polling worker.
+
+Weeks begin Monday in America/New_York, matching the application's calendar convention. The current week is created lazily on the first authorized visit. Per-unit optimistic revisions plus a week row lock prevent concurrent managers from overwriting one another. Expected-condition or local-assignment changes require reinspection; every saved revision is retained privately. Sources older than five minutes block confirmation and completion. Historical weeks remain read-only.
+
+Vacant lock requirements default to **not configured**. No missing vacant-lock warning is inferred from vacancy alone. Administrators can choose required/not required per facility. Auction security defaults to the requested auction-lock workflow; administrators can select an overlock or no facility lock where that is the actual requirement. Overlock expectations follow Cubby's current overlocked/overlock-needed flags. Local active assignments are authoritative. Missing-assignment alerts describe inventory discrepancies, not proof of physical absence. Alerts link into the existing available-lock selection and prefill the unit/type, without assigning anything automatically.
+
+Exactly six issues are supported. Exception and missing-assignment tasks reuse the existing dashboard Action Items and resolution RPC. Issue corrections resolve the superseded issue task while retaining the observation history. Resolving tasks never deletes inspection history. Policy, roster, observation, concurrency tokens and audit data are protected by existing live-session/facility authorization. Employee screens receive only operational fields and plain errors.
+
+Optional notes are supported. Photos are not introduced: the existing application has no photo storage/upload workflow. No Cubby writes, lock mutations, combination reads, SMS dispatch, or Twilio configuration changes are part of this feature.
+
+Focused verification: `node --test tests/walkthrough.test.mjs`, `tests/walkthrough.acceptance.sql` (transaction rolled back), TypeScript and production build. The SQL fixtures cover weekly persistence/rollover, required-lock warnings, issue deduplication/corrections, facility permissions, attribution, stale-source refusal and simultaneous-manager revision conflicts.
