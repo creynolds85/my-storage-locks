@@ -18,7 +18,8 @@ function client(alter={}){return {search:async(path,where,expansions)=>{
  assert.equal(where.facilityId,'fac_1');
  if(path==='facilities/search')return {facilities:[{facilityId:'fac_1',timeZone:'America/New_York'}]};
  if(path==='units/search')return {units:alter.units||[{facilityId:'fac_1',unitId:'u2',name:'2',free:true,walkthroughOrder:2},{facilityId:'fac_1',unitId:'u1',name:'1',free:false,leaseId:'l',walkthroughOrder:1}]};
- if(path==='leases/search'){assert.deepEqual(expansions,['customer']);return {leases:[{leaseId:'l',facilityId:'fac_1',customerId:'c',unitId:'u1',moveOutDate:null}],customers:[{customerId:'c',name:'Test tenant',contact:{phone:'PRIVATE'},dateOfBirth:'PRIVATE'}]};}
+ if(path==='leases/search')return {leases:[{leaseId:'l',facilityId:'fac_1',customerId:'c',unitId:'u1',moveOutDate:null}]};
+ if(path==='customers/search')return {customers:[{customerId:'c',name:'Test tenant',contact:{phone:'PRIVATE'},dateOfBirth:'PRIVATE'}]};
  return {auctions:[{auctionedLeases:[{unitId:'u1',status:'LISTED'}]}]};
 }}}
 test('read-only facility source retains order and auction/tenant names without contact details',async()=>{
