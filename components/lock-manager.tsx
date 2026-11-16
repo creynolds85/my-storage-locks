@@ -3,6 +3,7 @@ import {useEffect,useRef,useState,FormEvent,useId,cloneElement,ReactElement} fro
 import {LockKeyhole,Search,LayoutDashboard,List,Settings,Plus,Download,Upload,ArrowLeft,Eye,EyeOff,Copy,Check,LogOut,ChevronRight,ArrowUpRight,Building2,PackageOpen,X,Menu,ShieldCheck,KeyRound,ClipboardCheck} from "lucide-react";
 import {inventoryCategories,inventoryFilters,filterLabel,categoryCount,readInventoryRoute,inventoryRouteUrl} from "@/lib/inventory-filters.mjs";
 import CombinationChange from "@/components/combination-change";
+import {createManagerSessionMonitor,attachManagerActivity,clearManagerAuthStorage,SESSION_EXPIRED_MESSAGE} from "@/lib/manager-session.mjs";
 import {MANAGER_LOGIN_PATH,MANAGER_DASHBOARD_PATH} from "@/lib/manager-routing.mjs";
 import {employeeError} from "@/lib/lock-edit.mjs";
 import DashboardLockSearch from "@/components/dashboard-lock-search";
@@ -23,24 +24,32 @@ export default function LockManager({loginMessage}:{loginMessage:string}){
 const [visitLoginMessage]=useState(loginMessage);
 const [loginHeadline,...loginDetails]=visitLoginMessage.split('\n\n');
 const [client]=useState(()=>db());const [ready,setReady]=useState(false);const [profile,setProfile]=useState<Profile|null>(null);const [facilities,setFacilities]=useState<Facility[]>([]);const [scope,setScope]=useState("");const [view,setView]=useState("dashboard");const [query,setQuery]=useState("");const [filter,setFilter]=useState("");const [sort,setSort]=useState("default");const [locks,setLocks]=useState<Lock[]>([]);const [total,setTotal]=useState(0);const [counts,setCounts]=useState<Record<string,number>>({});const [selected,setSelected]=useState<Lock|null>(null);const [hasAssignment,setHasAssignment]=useState<boolean|null>(null);const [combination,setCombination]=useState<string|null>(null);const [revealed,setRevealed]=useState(false);const [panel,setPanel]=useState("");const [form,setForm]=useState(initialForm());const [assignmentType,setAssignmentType]=useState("overlock");const [unit,setUnit]=useState("");const [busy,setBusy]=useState(false);const [loading,setLoading]=useState(false);const [message,setMessage]=useState("");const [error,setError]=useState("");const [authMode,setAuthMode]=useState("login");const [email,setEmail]=useState("");const [password,setPassword]=useState("");const [newPassword,setNewPassword]=useState("");const [accounts,setAccounts]=useState<Account[]>([]);const [account,setAccount]=useState<Account>({email:"",name:"",role:"employee",active:true,facility_ids:[],registered:false});const [facility,setFacility]=useState({id:"",name:"",identifier:"",address:"",active:true});const [importData,setImportData]=useState<any>(null);const [includeCombos,setIncludeCombos]=useState(false);const [revision,setRevision]=useState(0);const request=useRef(0);const detailRequest=useRef(0);const fileInput=useRef<HTMLInputElement>(null);const panelRef=useRef<HTMLDivElement>(null);
+const sessionStatus=useRef<any>(null),sessionMonitor=useRef<any>(null),sessionEnded=useRef(false),authGeneration=useRef(0);
+function clearManagerData(){sessionStatus.current=null;authGeneration.current++;request.current++;detailRequest.current++;setProfile(null);setSelected(null);setCombination(null);setRevealed(false);setLocks([]);setFacilities([]);setCounts({});setAccounts([]);setTotal(0);setScope("");setQuery("");setPanel("");setForm(initialForm());setUnit("");setImportData(null);setIncludeCombos(false);setAccount({email:"",name:"",role:"employee",active:true,facility_ids:[],registered:false});setFacility({id:"",name:"",identifier:"",address:"",active:true});setAssignmentContext(null);setHasAssignment(null);setEmail("");setPassword("");setNewPassword("");setBusy(false);setLoading(false);if(fileInput.current)fileInput.current.value="";}
+async function endManagerSession(expired=true){if(sessionEnded.current)return;sessionEnded.current=true;sessionMonitor.current?.stop();clearManagerData();setError(expired?SESSION_EXPIRED_MESSAGE:"");setMessage("");setReady(true);
+ try{await Promise.race([client.auth.signOut({scope:expired?"local":"global"}),new Promise(resolve=>setTimeout(resolve,1500))])}catch{}finally{clearManagerAuthStorage(process.env.NEXT_PUBLIC_SUPABASE_URL!,document,localStorage);window.location.replace(MANAGER_LOGIN_PATH+(expired?"?expired=1":""))}}
+useEffect(()=>{if(!profile)return;const monitor=createManagerSessionMonitor({initial:sessionStatus.current,verify:async(activity:boolean)=>{const {data,error}=await client.rpc('manager_session',{activity});if(error)throw error;return data},onExpired:()=>{void endManagerSession(true)}});sessionMonitor.current=monitor;return attachManagerActivity(monitor,{document,window})},[profile?.id,client]);
 const [assignmentContext,setAssignmentContext]=useState<{facility:string;unit:string;type:string}|null>(null);
 function beginWalkthroughAssignment(facility:string,unit:string,type:string){setAssignmentContext({facility,unit,type});navigate("inventory","available",facility);}
 const listingSort=effectiveInventorySort(sort,scope,facilities.length);
 const admin=profile?.role==="admin";const activeFacility=facilities.find(f=>f.id===scope);const facilityName=(id:string|null)=>facilities.find(f=>f.id===id)?.name||"Company";
 function fail(e:any){setError(employeeError(e));setMessage("")}
 function success(s:string){setMessage(s);setError("")}
-async function rpc(name:string,args:any={}){const {data,error}=await client.rpc(name,args);if(error)throw error;return data}
+async function rpc(name:string,args:any={}){const run=authGeneration.current;const {data,error}=await client.rpc(name,args);if(sessionEnded.current||run!==authGeneration.current)throw Error("session_ended");if(error)throw error;return data}
 async function initialize(){
-const {data:{user},error}=await client.auth.getUser();if(error||!user){setProfile(null);window.history.replaceState(null,"",MANAGER_LOGIN_PATH+window.location.search+window.location.hash);setReady(true);return}
+const run=authGeneration.current;
+const {data:{user},error}=await client.auth.getUser();if(run!==authGeneration.current)return;if(error||!user){setProfile(null);if(new URLSearchParams(window.location.search).get("expired")==="1")setError(SESSION_EXPIRED_MESSAGE);window.history.replaceState(null,"",MANAGER_LOGIN_PATH+window.location.search+window.location.hash);setReady(true);return}
+const session=await client.rpc('manager_session',{activity:false}).abortSignal(AbortSignal.timeout(5000));if(run!==authGeneration.current)return;
+if(session.error||!session.data?.active){await endManagerSession(true);return}sessionStatus.current=session.data;
 const {data:p}=await client.from("profiles").select("id,email,name,role,active").eq("id",user.id).maybeSingle();
 if(!p){setProfile(null);setReady(true);setError("Your account is not active. Ask your administrator to authorize your email.");return}
 const {data:f,error:fe}=await client.from("facilities").select("id,name,identifier,address,active").order("name");
-if(fe){fail(fe);setReady(true);return}setProfile(p);setFacilities(f||[]);
+if(run!==authGeneration.current)return;if(fe){fail(fe);setReady(true);return}setProfile(p);setFacilities(f||[]);
 const saved=localStorage.getItem("lock-manager-facility-"+user.id)||"";
 const route=readInventoryRoute(window.location.search,p.role,f||[],saved);setScope(route.scope);setView(route.view);setFilter(route.filter);
 window.history.replaceState(null,"",inventoryRouteUrl(new URL(MANAGER_DASHBOARD_PATH+window.location.search+window.location.hash,window.location.origin).href,route));
 setReady(true)}
-useEffect(()=>{initialize();const {data:{subscription}}=client.auth.onAuthStateChange((event:string)=>{if(event==="SIGNED_OUT"){window.history.replaceState(null,"",MANAGER_LOGIN_PATH);setProfile(null);setSelected(null);setCombination(null);setRevealed(false);setLocks([]);setFacilities([]);setCounts({});setAccounts([])}if(event==="PASSWORD_RECOVERY")setAuthMode("password")});return ()=>subscription.unsubscribe()},[client]);
+useEffect(()=>{initialize();const {data:{subscription}}=client.auth.onAuthStateChange((event:string)=>{if(event==="SIGNED_OUT"){const expired=!!sessionStatus.current;clearManagerData();if(!sessionEnded.current)window.location.replace(MANAGER_LOGIN_PATH+(expired?"?expired=1":""))}if(event==="PASSWORD_RECOVERY")setAuthMode("password")});return ()=>subscription.unsubscribe()},[client]);
 function navigate(nextView:string,nextFilter=filter,nextScope=scope){
 const route=readInventoryRoute(new URLSearchParams({view:nextView,status:nextFilter,facility:nextScope}).toString(),profile?.role,facilities,scope);
 const url=inventoryRouteUrl(new URL(MANAGER_DASHBOARD_PATH+window.location.search+window.location.hash,window.location.origin).href,route);
@@ -66,9 +75,9 @@ async function authenticate(e:FormEvent){e.preventDefault();setBusy(true);setErr
 if(authMode==="password"){const {error}=await client.auth.updateUser({password:newPassword});if(error)throw error;setAuthMode("login");setNewPassword("");success("Password updated. You can sign in.");await initialize()}
 else if(authMode==="signup"){const {error}=await client.auth.signUp({email:email.trim(),password,options:{emailRedirectTo:window.location.origin+MANAGER_LOGIN_PATH}});if(error)throw error;success("Check your email to confirm your account, then return here to sign in.");setAuthMode("login");setPassword("")}
 else if(authMode==="reset"){const {error}=await client.auth.resetPasswordForEmail(email.trim(),{redirectTo:window.location.origin+MANAGER_LOGIN_PATH});if(error)throw error;success("If the account exists, a password reset email has been sent.")}
-else{const {error}=await client.auth.signInWithPassword({email:email.trim(),password});if(error)throw error;setPassword("");await initialize()}
+else{const {error}=await client.auth.signInWithPassword({email:email.trim(),password});if(error)throw error;setPassword("");sessionEnded.current=false;await initialize()}
 }catch(e){fail(e)}finally{setBusy(false)}}
-async function signOut(){setBusy(true);try{const {error}=await client.auth.signOut({scope:"global"});if(error)throw error;setProfile(null);setSelected(null);setPanel("");setPassword("");setError("");setMessage("")}catch(e){fail(e)}finally{setBusy(false)}}
+async function signOut(){await endManagerSession(false)}
 function closePanel(){if(busy)return;setPanel("");setSelected(null);setCombination(null);setRevealed(false);setImportData(null);setError("")}
 async function openLock(l:Lock){const n=++detailRequest.current;setHasAssignment(null);setSelected(l);setCombination(null);setRevealed(false);setUnit(assignmentContext&&assignmentContext.facility===l.facility_id?assignmentContext.unit:"");if(assignmentContext&&assignmentContext.facility===l.facility_id)setAssignmentType(assignmentContext.type);setPanel("");setError("");try{const active=await rpc("has_current_assignment",{lid:l.id});if(n===detailRequest.current)setHasAssignment(active===true)}catch(e){if(n===detailRequest.current)fail(e)}}
 async function mutate(payload:any,label:string){setBusy(true);try{await rpc("mutate_lock",{p:payload});success(label);setRevision(v=>v+1);closeAfterSave()}catch(e){fail(e)}finally{setBusy(false)}}

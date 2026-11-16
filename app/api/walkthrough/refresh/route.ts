@@ -1,3 +1,4 @@
+import {managerSessionAllowed,SESSION_EXPIRED_MESSAGE} from '@/lib/manager-session.mjs';
 import {createClient} from '@supabase/supabase-js';
 import {runtime} from '@/lib/automation/worker.mjs';
 import {authorizeWorker,NO_STORE} from '@/lib/automation/security.mjs';
@@ -13,7 +14,7 @@ export async function POST(request:Request){
    const auth=request.headers.get('authorization')||'';
    const client=createClient(url,key,{global:{headers:{Authorization:auth}},auth:{persistSession:false,autoRefreshToken:false}});
    const {data,error}=await client.auth.getUser(auth.replace(/^Bearer /,''));
-   if(error||!data.user)return Response.json({error:'Please sign in.'},{status:401,headers:NO_STORE});
+   if(error||!data.user||!await managerSessionAllowed(client))return Response.json({error:SESSION_EXPIRED_MESSAGE},{status:401,headers:NO_STORE});
    const access=await client.rpc('walkthrough_access',{fid:facilityId});
    if(access.error)return Response.json({error:'This facility is not available to your account.'},{status:403,headers:NO_STORE});
    if(access.data?.refreshNeeded===false)return Response.json({ok:true,cached:true},{headers:NO_STORE});
