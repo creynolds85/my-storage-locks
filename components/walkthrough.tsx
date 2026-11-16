@@ -29,10 +29,11 @@ export default function Walkthrough({client,scope,admin,onAssign}:{client:any;sc
  useEffect(()=>{pageRef.current=null;setPage(null);setQuery('');setFilter('all');setUndo(null);setFeedback('');anchor.current=null;setMode(selectedWeek?'review':'quick');setLeaving(new Set());setIssueId(null);for(const timer of exitTimers.current)clearTimeout(timer);exitTimers.current.clear();load(true,true);const timer=setInterval(()=>{if(!active.current.size&&!editingRef.current)load(true)},60000);return ()=>{generation.current++;clearInterval(timer);for(const exit of exitTimers.current)clearTimeout(exit);exitTimers.current.clear()}},[load]);
  const advance=useCallback((entry:WalkEntry|null)=>{if(!entry)return;anchor.current=entry.id;setQuery('');setFilter('all');setFocusId(entry.id)},[]);
  const finishQuickRow=useCallback((id:string)=>{
+  const row=document.getElementById('walk-'+id);if(!row||!quickList.current?.contains(row))return;
   setLeaving(old=>new Set(old).add(id));
   const buttons=Array.from(quickList.current?.querySelectorAll<HTMLButtonElement>('.walk-confirm-button')||[]),index=buttons.findIndex(button=>button.id==='walk-confirm-'+id);
   const delay=window.matchMedia('(prefers-reduced-motion: reduce)').matches?0:140;
-  const timer=setTimeout(()=>{exitTimers.current.delete(timer);setLeaving(old=>{const next=new Set(old);next.delete(id);return next});requestAnimationFrame(()=>{if(modeRef.current==='quick'){const next=quickList.current?.querySelectorAll<HTMLButtonElement>('.walk-confirm-button:not(:disabled)');next?.[Math.max(0,Math.min(index,next.length-1))]?.focus({preventScroll:true})}})},delay);
+  const timer=setTimeout(()=>{exitTimers.current.delete(timer);setLeaving(old=>{const next=new Set(old);next.delete(id);return next});requestAnimationFrame(()=>{if(modeRef.current==='quick'&&!editingRef.current){const next=quickList.current?.querySelectorAll<HTMLButtonElement>('.walk-confirm-button:not(:disabled)');next?.[Math.max(0,Math.min(index,next.length-1))]?.focus({preventScroll:true})}})},delay);
   exitTimers.current.add(timer);
  },[]);
  const record=useCallback((id:string,mutation:Record<string,unknown>)=>queue.run(id,async()=>{
@@ -47,7 +48,7 @@ export default function Walkthrough({client,scope,admin,onAssign}:{client:any;sc
    if(mutation.action==='set_confirmation'){
     if(mutation.confirmed){setFeedback('Unit '+entry.expected.label+' confirmed');setUndo({id,label:entry.expected.label});if(modeRef.current==='quick')finishQuickRow(id);}
     else{setFeedback('Confirmation undone for Unit '+entry.expected.label);setUndo(previous=>previous?.id===id?null:previous);anchor.current=id;if(modeRef.current==='review')setFocusId(updated.id);}
-   }else setFeedback((mutation.action==='set_notes'?'Notes':'Issue')+' saved for Unit '+entry.expected.label);
+   }else{setFeedback((mutation.action==='set_notes'?'Notes':'Issue')+' saved for Unit '+entry.expected.label);if(mutation.action==='set_issue'&&mutation.issue&&modeRef.current==='quick')finishQuickRow(id);}
    return true;
   }catch{if(pageRef.current?.id!==current.id)return false;await load(false);setError('Unable to save this unit. Review it and try again.');return false;}
   finally{active.current.delete(id);setPending(new Set(active.current))}
@@ -59,6 +60,7 @@ export default function Walkthrough({client,scope,admin,onAssign}:{client:any;sc
  async function complete(){const current=pageRef.current;if(!current||active.current.size)return;try{const r=await client.rpc('walkthrough_record',{p:{weekId:current.id,action:'complete'}});if(r.error)throw r.error;const updated={...current,completedAt:r.data.completedAt};pageRef.current=updated;setPage(updated);setFeedback('Weekly inspection completed')}catch{setError('Refresh and inspect every current unit before completing.')}}
  async function policy(vacant:boolean|null,auction:string){setPolicyBusy(true);try{const r=await client.rpc('walkthrough_policy',{fid:scope,vacant_required:vacant,auction_lock_type:auction});if(r.error)throw r.error;await load(false,true)}catch{setError('Unable to save facility lock requirements. Please try again.')}finally{setPolicyBusy(false)}}
   const focused=useCallback(()=>setFocusId(null),[]);
+ const closeIssue=useCallback(()=>{setIssueId(null);requestAnimationFrame(()=>{if(modeRef.current==='quick')quickList.current?.querySelector<HTMLButtonElement>('.walk-confirm-button:not(:disabled)')?.focus({preventScroll:true})})},[]);
  const items=page?.items||[],progress=inspectionProgress(items),disabled=!!page?.historical||!!page?.stale||!!sourceError;
  const visible=useMemo(()=>walkRows(items,{mode,query,filter,leaving}) as WalkEntry[],[items,mode,query,filter,leaving]);
  const queueRows=visible.slice(0,QUICK_WALK_SIZE),editing=items.find(e=>e.id===issueId);
@@ -76,7 +78,7 @@ export default function Walkthrough({client,scope,admin,onAssign}:{client:any;sc
  <div className="walkthrough-toolbar"><label className="search-input compact"><Search size={17}/><input aria-label="Search walk-through unit" placeholder="Find a unit…" value={query} onChange={e=>setQuery(e.target.value)}/></label><select aria-label="Filter walk-through" value={filter} onChange={e=>setFilter(e.target.value)}><option value="all">All units</option><option value="unchecked">Unchecked</option><option value="issues">Issues</option><option value="occupied">Occupied</option><option value="vacant">Vacant</option><option value="overlock">Overlocked</option><option value="auction">Auction</option></select></div>
  {mode==='quick'?<div ref={quickList} className="walk-list-viewport walk-quick-list" role="list" aria-label="Quick Walk unchecked units">{queueRows.map(entry=><div className={'walk-list-slot'+(leaving.has(entry.id)?' walk-row-leaving':'')} role="listitem" key={entry.id}><WalkthroughCard entry={entry} disabled={disabled||leaving.has(entry.id)} pending={pending.has(entry.id)} historical={!!page?.historical} onConfirm={confirm} onOpenIssue={setIssueId} onAssign={assign}/></div>)}{!queueRows.length&&<p className="walk-queue-empty">{query||filter!=='all'?'No unchecked units match.':'No unchecked units. Switch to Review to see completed units.'}</p>}</div>:<WalkthroughReviewList items={visible} disabled={disabled} pending={pending} historical={!!page?.historical} focusId={focusId} onFocused={focused} onConfirm={confirm} onOpenIssue={setIssueId} onAssign={assign}/>}
  <div className="walkthrough-finish"><button className="primary" disabled={disabled||!!pending.size||progress.remaining!==0||!!page?.completedAt} onClick={complete}><ClipboardCheck size={18}/>{page?.completedAt?'Inspection complete':'Complete weekly inspection'}</button>{progress.remaining>0&&<small>Confirm or document an exception for every unit.</small>}</div></>}
- {editing&&<WalkthroughIssueDialog key={editing.id} entry={editing} disabled={disabled} pending={pending.has(editing.id)} onIssue={issue} onNotes={notes} onClose={()=>setIssueId(null)}/>}
+ {editing&&<WalkthroughIssueDialog key={editing.id} entry={editing} disabled={disabled} pending={pending.has(editing.id)} onIssue={issue} onNotes={notes} onConfirm={confirm} onClose={closeIssue}/>}
  {feedback&&<div className="walkthrough-feedback" role="status"><span>{feedback}</span>{undo&&!page?.historical&&<button className="secondary" disabled={disabled||pending.has(undo.id)} onClick={()=>confirm(undo.id,false)}><Undo2 size={18}/>Undo Unit {undo.label}</button>}<button className="walk-feedback-close" aria-label="Dismiss feedback" onClick={()=>setFeedback('')}><X size={17}/></button></div>}
  </section>;
 }
