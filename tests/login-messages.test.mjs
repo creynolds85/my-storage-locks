@@ -5,14 +5,14 @@ const messageAt = iso => dailyLoginMessage(new Date(iso));
 test('approved collection has 25 unique messages and starts production on message 25',()=>{
  assert.equal(LOGIN_MESSAGES.length,25);assert.equal(new Set(LOGIN_MESSAGES).size,25);
  assert.equal(LOGIN_MESSAGE_START_DATE,'2026-11-05');
- assert.equal(messageAt('2026-11-05T05:00:00Z'),'No locks were harmed in the making of this dashboard.');
+ assert.equal(messageAt('2026-11-05T05:00:00Z'),'No locks were harmed during the making of this dashboard');
  assert.equal(messageAt('2026-11-06T04:59:59.999Z'),LOGIN_MESSAGES[24]);
  assert.equal(messageAt('2026-11-06T05:00:00Z'),LOGIN_MESSAGE_OVERRIDES['2026-11-06']);
 });
 test('advances through every approved message and wraps after 24 back to 25',()=>{
  for(let day=0;day<100;day++){
   const date=new Date(Date.UTC(2026,10,5+day,17));
-  assert.equal(dailyLoginMessage(date),day===1?LOGIN_MESSAGE_OVERRIDES['2026-11-06']:LOGIN_MESSAGES[(day+24)%25]);
+  assert.equal(dailyLoginMessage(date),LOGIN_MESSAGE_OVERRIDES[date.toISOString().slice(0,10)]||LOGIN_MESSAGES[(day+24)%25]);
  }
  assert.equal(messageAt('2026-11-29T17:00:00Z'),LOGIN_MESSAGES[23]);
  assert.equal(messageAt('2026-11-30T17:00:00Z'),LOGIN_MESSAGES[24]);
@@ -36,3 +36,5 @@ test('one-day override ends at New York midnight without shifting rotation',()=>
  assert.equal(messageAt('2026-11-07T05:00:00Z'),LOGIN_MESSAGES[1]);
  assert.equal(messageAt('2026-11-08T05:00:00Z'),LOGIN_MESSAGES[2]);
 });
+
+test('requested headline is visible today in New York and retains the rotating collection wording',()=>{const expected='No locks were harmed during the making of this dashboard';assert.equal(messageAt('2026-11-16T05:00:00Z'),expected);assert.equal(messageAt('2026-11-17T04:59:59Z'),expected);assert.equal(LOGIN_MESSAGES[24],expected);assert.equal(messageAt('2026-11-17T05:00:00Z'),LOGIN_MESSAGES[11]);});
