@@ -1,0 +1,3 @@
+import test from 'node:test';import assert from 'node:assert/strict';import fs from 'node:fs/promises';
+const manager=await fs.readFile(new URL('../components/lock-manager.tsx',import.meta.url),'utf8');
+test('manager dashboard contains no Action Items component, count, controls, or replacement request',()=>{assert.doesNotMatch(manager,/OperationsPanel|operations-panel|automation_dashboard|automation_action|Action items|Resolve action/);assert.match(manager,/inventoryCategories\.map/);assert.match(manager,/<DashboardLockSearch/);assert.match(manager,/<Walkthrough/);assert.match(manager,/beginWalkthroughAssignment/)});
