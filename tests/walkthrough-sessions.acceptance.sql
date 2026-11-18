@@ -22,8 +22,8 @@ do $$declare p jsonb;s1 jsonb;s2 jsonb;e jsonb;r jsonb;denied boolean;begin
  perform public.walkthrough_record(jsonb_build_object('weekId',s1->>'id','entryId',e->>'id','version',e->'version','action','set_notes','notes','Retain this finding'));
  p:=public.walkthrough_page('99000000-0000-0000-0000-000000000021',(s1->>'id')::uuid);
  denied:=false;begin perform public.walkthrough_session(jsonb_build_object('action','restart','sessionId',s1->>'id','version',p->'sessionVersion'));exception when others then denied:=true;end;if not denied then raise exception 'FAIL restart without confirmation';end if;
- denied:=false;begin perform public.walkthrough_session(jsonb_build_object('action','restart','sessionId',s1->>'id','version',0,'acknowledged',true));exception when serialization_failure then denied:=true;end;if not denied then raise exception 'FAIL stale management revision';end if;
- p:=public.walkthrough_session(jsonb_build_object('action','restart','sessionId',s1->>'id','version',p->'sessionVersion','acknowledged',true));
+ denied:=false;begin perform public.walkthrough_session(jsonb_build_object('action','restart','sessionId',s1->>'id','version',0,'acknowledged',true,'permanent',true));exception when serialization_failure then denied:=true;end;if not denied then raise exception 'FAIL stale management revision';end if;
+ p:=public.walkthrough_session(jsonb_build_object('action','restart','sessionId',s1->>'id','version',p->'sessionVersion','acknowledged',true,'permanent',true));
  if exists(select 1 from jsonb_array_elements(p->'items') x(value) where (x.value->>'confirmed')::boolean) or p->'items'->1->>'issue'<>'Door/Latch Damage' or p->'items'->1->>'notes'<>'Retain this finding' or p->'items'->1->>'issueManager'<>'Session Starter' then raise exception 'FAIL restart findings';end if;
  r:=public.walkthrough_page('99000000-0000-0000-0000-000000000021',(s2->>'id')::uuid);if (r->>'inspected')::int<>0 then raise exception 'FAIL cross-session overwrite';end if;
  denied:=false;begin perform public.walkthrough_page('99000000-0000-0000-0000-000000000022',(s1->>'id')::uuid);exception when insufficient_privilege then denied:=true;end;if not denied then raise exception 'FAIL facility isolation';end if;
@@ -41,15 +41,15 @@ do $$declare p jsonb;e jsonb;r jsonb;denied boolean;begin
  perform public.walkthrough_record(jsonb_build_object('weekId',p->>'id','action','complete'));
  p:=public.walkthrough_page('99000000-0000-0000-0000-000000000021',current_setting('qa.s1')::uuid);
  if p->>'status'<>'completed' or p->>'startedBy'<>'Session Starter' or p->>'completedBy'<>'Session Finisher' or not (p->>'historical')::boolean or p->'items'->1->>'issue'<>'Door/Latch Damage' then raise exception 'FAIL completion attribution/history';end if;
- denied:=false;begin perform public.walkthrough_session(jsonb_build_object('action','restart','sessionId',p->>'id','version',p->'sessionVersion','acknowledged',true));exception when others then denied:=true;end;if not denied then raise exception 'FAIL completed restart';end if;
- denied:=false;begin perform public.walkthrough_session(jsonb_build_object('action','discard','sessionId',p->>'id','version',p->'sessionVersion','acknowledged',true));exception when others then denied:=true;end;if not denied then raise exception 'FAIL completed discard';end if;
+ denied:=false;begin perform public.walkthrough_session(jsonb_build_object('action','restart','sessionId',p->>'id','version',p->'sessionVersion','acknowledged',true,'permanent',true));exception when others then denied:=true;end;if not denied then raise exception 'FAIL completed restart';end if;
+ denied:=false;begin perform public.walkthrough_session(jsonb_build_object('action','discard','sessionId',p->>'id','version',p->'sessionVersion','acknowledged',true,'permanent',true));exception when others then denied:=true;end;if not denied then raise exception 'FAIL completed discard';end if;
  p:=public.walkthrough_page('99000000-0000-0000-0000-000000000021',current_setting('qa.s2')::uuid);
- r:=public.walkthrough_session(jsonb_build_object('action','discard','sessionId',p->>'id','version',p->'sessionVersion','acknowledged',true));
+ r:=public.walkthrough_session(jsonb_build_object('action','discard','sessionId',p->>'id','version',p->'sessionVersion','acknowledged',true,'permanent',true));
  if r->>'id' is not null or jsonb_array_length(r->'history')<>1 then raise exception 'FAIL discard active choices';end if;
  denied:=false;begin perform public.walkthrough_page('99000000-0000-0000-0000-000000000021',current_setting('qa.s2')::uuid);exception when others then denied:=true;end;if not denied then raise exception 'FAIL discarded resume';end if;
  r:=public.walkthrough_page('99000000-0000-0000-0000-000000000021');if r->>'id' is not null then raise exception 'FAIL automatic next-week creation';end if;
 end $$;
 reset role;
 do $$begin
- if (select count(*) from private.walkthrough_entries where week_id=current_setting('qa.s2')::uuid)<>3 or not exists(select 1 from private.walkthrough_events where week_id=current_setting('qa.s2')::uuid and action='discard') then raise exception 'FAIL discard retention';end if;
+ if exists(select 1 from private.walkthrough_entries where week_id=current_setting('qa.s2')::uuid) or exists(select 1 from private.walkthrough_weeks where id=current_setting('qa.s2')::uuid) or not exists(select 1 from private.walkthrough_deletions where inspection_id=current_setting('qa.s2')::uuid) then raise exception 'FAIL permanent discard';end if;
 end $$;
