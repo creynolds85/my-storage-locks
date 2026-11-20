@@ -19,7 +19,7 @@ globalThis.fetch=async()=>({ok:true});globalThis.IS_REACT_ACT_ENVIRONMENT=true;
 const React=await import('react');const {act}=React;const {createRoot}=await import('react-dom/client');
 const {transform,loadBindings}=createRequire(import.meta.url)('next/dist/build/swc');await loadBindings();
 const root=path.resolve(import.meta.dirname,'..'),dir=path.join(root,'test-results','walkthrough-session-contract');await fs.mkdir(dir,{recursive:true});
-for(const name of ['walkthrough','walkthrough-card','walkthrough-issue-dialog','walkthrough-review-list','walkthrough-quick-unit','walkthrough-history','walkthrough-confirmation']){
+for(const name of ['walkthrough','walkthrough-card','walkthrough-issue-dialog','walkthrough-review-list','walkthrough-quick-unit','walkthrough-history']){
  let source=await fs.readFile(path.join(root,'components',name+'.tsx'),'utf8');
  source=source.replace(/@\/components\/([a-z-]+)/g,(_,n)=>pathToFileURL(path.join(dir,n+'.mjs')).href).replaceAll('@/lib/',pathToFileURL(path.join(root,'lib')).href+'/').replaceAll("'./walkthrough-card'","'./walkthrough-card.mjs'");
  const compiled=(await transform(source,{filename:name+'.tsx',jsc:{parser:{syntax:'typescript',tsx:true},transform:{react:{runtime:'automatic'}},target:'es2022'},module:{type:'es6'}})).code;await fs.writeFile(path.join(dir,name+'.mjs'),compiled);
@@ -68,17 +68,17 @@ test('Quick Walk animates immediately, waits for persistence, and advances in so
   await act(async()=>{control.click();control.click();control.click()});await flush();
   assert.equal(writes(f).length,1);
   assert.equal(activeLabel(f.host),'3214');
-  assert.equal(control.textContent,'Saving…');
+  assert.equal(control.textContent,'');
+  assert.equal(control.querySelector('svg').getAttribute('width'),'34');
+  assert.equal(getComputedStyle(control).backgroundColor.toLowerCase(),'#f43f5e');
   assert.equal(f.data.items[0].confirmed,false);
   assert.equal(f.host.querySelector('.walk-confirmation-announcement'),null);
-  const mark=panel.querySelector('.walk-confirmation-mark');
-  assert.ok(mark);
-  assert.equal(getComputedStyle(mark).backgroundColor.toLowerCase(),'#10b981');
-  assert.equal(getComputedStyle(mark).borderTopWidth,'4px');
-  assert.equal(mark.closest('.walk-confirmation-effect').getAttribute('aria-hidden'),'true');
-  await flush(320);
-  assert.equal(activeLabel(f.host),'3214');
+  assert.ok(panel.classList.contains('walk-confirmed-pulse'));
   assert.equal(panel.querySelector('.walk-confirmation-mark'),null);
+  await flush(250);
+  assert.equal(activeLabel(f.host),'3214');
+  assert.equal(panel.classList.contains('walk-confirmed-pulse'),false);
+  assert.equal(control.textContent,'');
   await act(async()=>release());await flush();
   assert.equal(activeLabel(f.host),'0002');
   assert.equal(f.data.items[0].confirmed,true);
@@ -97,15 +97,20 @@ test('Quick Walk animates immediately, waits for persistence, and advances in so
 test('Quick Walk rolls back a pending animation after a failed save and supports a reduced-motion retry',async()=>{
  reduced=false;
  try{
-  const f=await mount(fixture(3));
+  const page=fixture(3);page.items[0].issue='Door/Latch Damage';
+  const f=await mount(page);
   let release;f.setHold(new Promise(resolve=>release=resolve));f.setFail(true);
   await click(confirm(f.host));
-  assert.ok(f.host.querySelector('.walk-confirmation-mark'));
+  assert.ok(confirm(f.host).classList.contains('selected'));
+  assert.ok(f.host.querySelector('.quick-unit.walk-confirmed-pulse'));
   await act(async()=>release());await flush();
   assert.equal(activeLabel(f.host),'3214');
   assert.equal(f.data.items[0].confirmed,false);
   assert.equal(f.host.querySelector('.walk-confirmation-mark'),null);
   assert.equal(confirm(f.host).disabled,false);
+  assert.equal(confirm(f.host).textContent,'Confirm');
+  assert.equal(confirm(f.host).classList.contains('selected'),false);
+  assert.match(f.host.querySelector('.quick-unit-issue').textContent,/Door\/Latch Damage/);
   assert.match(f.host.querySelector('[role=alert]').textContent,/Unable to save/);
   reduced=true;f.setFail(false);
   await click(confirm(f.host));
@@ -126,7 +131,7 @@ test('Restart retains findings; permanent Discard requires confirmation and comp
  await click(f.host.querySelector('[aria-label="Inspection history"]'));await click(button(f.host,'Discard'));assert.match(f.host.querySelector('dialog').textContent,/cannot be undone/);assert.equal(f.host.querySelector('dialog h2').textContent,'Delete Walk-Through?');await click(button(f.host,'Cancel'));assert.equal(f.data.status,'in_progress');await click(button(f.host,'Discard'));await click(button(f.host,'Delete Walk-Through'));await flush();assert.equal(f.data.id,null);assert.ok(button(f.host,'New Walk-Through'));assert.equal(f.sessions.has('week-fixture'),false);
  const completed={...fixture(2),status:'completed',historical:true,completedAt:'2026-11-17T15:00:00Z',completedBy:'Fixture Finisher'};for(const e of completed.items)e.confirmed=true;await f.unmount();const g=await mount(completed);await click(g.host.querySelector('[aria-label="Inspection history"]'));assert.equal(button(g.host,'Restart'),undefined);assert.equal(button(g.host,'Discard'),undefined);assert.match(g.host.querySelector('dialog').textContent,/Completed by: Fixture Finisher/);
 });
-test('Full List pulses its inline button and scrolls forward only after a successful save',async()=>{
+test('Full List flashes the border and shows a checkmark and scrolls forward only after a successful save',async()=>{
  reduced=false;
  try{
   const f=await mount(fixture(100));await click(button(f.host,'Full List'));
@@ -138,13 +143,16 @@ test('Full List pulses its inline button and scrolls forward only after a succes
   assert.equal(writes(f).length,1);
   assert.ok(row.classList.contains('walk-confirmed-pulse'));
   assert.equal(row.querySelector('.walk-confirmation-effect'),null);
-  assert.equal(control.textContent,'Confirmed');
+  assert.equal(control.textContent,'');
+  assert.equal(getComputedStyle(control).backgroundColor.toLowerCase(),'#f43f5e');
+  assert.equal(control.querySelector('svg').getAttribute('width'),'30');
   assert.equal(control.getAttribute('aria-busy'),'true');
   assert.equal(control.getAttribute('aria-pressed'),'false');
   assert.equal(f.data.items[0].confirmed,false);
   assert.equal(list.scrollRequests.length,0);
   await act(async()=>release());await flush();
   assert.equal(control.getAttribute('aria-pressed'),'true');
+  assert.equal(control.textContent,'');
   assert.ok(list.scrollTop>0);
   for(let i=1;i<4;i++){
    const prior=list.scrollTop;
@@ -165,7 +173,7 @@ test('Full List rolls back a failed confirmation without scrolling and retains m
  const list=f.host.querySelector('.walk-full-list');list.scrollRequests=[];
  let release;f.setHold(new Promise(resolve=>release=resolve));f.setFail(true);
  await click(f.host.querySelector('#walk-confirm-unit-0'));
- assert.equal(f.host.querySelector('#walk-confirm-unit-0').textContent,'Confirmed');
+ assert.equal(f.host.querySelector('#walk-confirm-unit-0').textContent,'');
  await act(async()=>release());await flush();
  const retried=f.host.querySelector('#walk-confirm-unit-0');
  assert.equal(retried.textContent,'Confirm');
@@ -197,49 +205,86 @@ test('mobile viewport accounts for the toolbar and safe area with compact fixed 
  assert.equal(f.host.querySelectorAll('.walkthrough-progress').length,1);
 });
 test('white cards retain distinct status accents and an independent accessible issue indicator',async()=>{
- const palette={occupied:['#2563eb','#eff6ff','#1d4ed8'],vacant:['#10b981','#ecfdf5','#047857'],overlock:['#f43f5e','#fff1f2','#be123c'],auction:['#7c3aed','#f5f3ff','#6d28d9']};
+ const palette={occupied:['#0ea5e9','#0369a1'],vacant:['#10b981','#047857'],overlock:['#f43f5e','#be123c'],auction:['#b91c1c','#374151']};
  function checkCard(card,kind,issue){
-  const [accent,background,ink]=palette[kind],style=getComputedStyle(card);
+  const [accent,ink]=palette[kind],style=getComputedStyle(card);
+  const control=card.querySelector('.walk-confirm-button,.quick-confirm-button');
+  const buttonStyle=getComputedStyle(control);
   const pill=getComputedStyle(card.querySelector('.walk-status,.quick-unit-status'));
   assert.equal(style.backgroundColor.toLowerCase(),'#ffffff');
   assert.ok(!style.backgroundImage||style.backgroundImage==='none');
   assert.equal(style.borderTopWidth,'1px');
   assert.equal(style.borderLeftWidth,'4px');
   assert.equal(style.borderLeftColor.toLowerCase(),accent);
-  assert.equal(pill.backgroundColor.toLowerCase(),background);
+  assert.equal(pill.backgroundColor.toLowerCase(),'#ffffff');
+  assert.equal(pill.borderTopWidth,'1.5px');
+  assert.equal(pill.borderTopColor.toLowerCase(),accent);
   assert.equal(pill.color.toLowerCase(),ink);
   assert.equal(getComputedStyle(card.querySelector(issue)).color.toLowerCase(),'#b45309');
+  assert.equal(buttonStyle.borderTopWidth,'1.5px');
+  assert.equal(buttonStyle.borderTopColor.toLowerCase(),accent);
+  if(control.classList.contains('selected')){
+   assert.equal(buttonStyle.backgroundColor.toLowerCase(),accent);
+   assert.equal(buttonStyle.color.toLowerCase(),'#ffffff');
+   assert.equal(control.textContent,'');
+  }else{
+   assert.equal(buttonStyle.backgroundColor.toLowerCase(),'#ffffff');
+   assert.equal(buttonStyle.color.toLowerCase(),ink);
+   assert.equal(control.textContent,'Confirm');
+  }
  }
  const page=fixture(4);for(const entry of page.items)entry.issue='Other';
  const f=await mount(page);
  await click(button(f.host,'Full List'));
- for(const [i,entry] of page.items.entries())checkCard(f.host.querySelector('#walk-unit-'+i),entry.expected.kind,'.walk-issue-button');
+ for(const [i,entry] of page.items.entries())checkCard(f.host.querySelector('#walk-unit-'+i),entry.expected.kind,'.walk-issue-tag');
  await click(button(f.host,'Quick Walk'));
  for(const entry of page.items){
   checkCard(f.host.querySelector('.quick-unit'),entry.expected.kind,'.quick-unit-issue');
-  assert.equal(getComputedStyle(confirm(f.host)).backgroundColor.toLowerCase(),'#2563eb');
   await click(confirm(f.host));
  }
  await click(button(f.host,'Full List'));
  for(const [i,entry] of page.items.entries()){
   const card=f.host.querySelector('#walk-unit-'+i);
-  checkCard(card,entry.expected.kind,'.walk-issue-button');
+  checkCard(card,entry.expected.kind,'.walk-issue-tag');
   assert.equal(card.querySelector('.walk-confirm-button').getAttribute('aria-pressed'),'true');
  }
  function luminance(hex){
   const [r,g,b]=hex.slice(1).match(/../g).map(value=>parseInt(value,16)/255).map(value=>value<=.04045?value/12.92:((value+.055)/1.055)**2.4);
   return .2126*r+.7152*g+.0722*b;
  }
- for(const [background,ink] of [...Object.values(palette).map(([,bg,fg])=>[bg,fg]),['#fffbeb','#b45309'],['#2563eb','#ffffff'],['#10b981','#0f172a']]){
+ for(const [background,ink] of [...Object.values(palette).map(([,ink])=>['#ffffff',ink]),['#fffbeb','#b45309']]){
   const values=[luminance(background),luminance(ink)];
   assert.ok((Math.max(...values)+.05)/(Math.min(...values)+.05)>=4.5,background+' / '+ink);
  }
- assert.match(css,/walk-card-check 300ms/);
- assert.match(css,/walk-row-verified 200ms/);
- assert.match(css,/walk-button-verified 250ms/);
+ assert.match(css,/walk-border-flash 225ms/);
+ assert.match(css,/border: 2px solid var\(--walk-accent\)/);
+ assert.match(css,/translateX\(5px\)/);
+ assert.doesNotMatch(css,/walk-confirmation-(effect|mark)/);
 });
-test('emerald confirmation cleans up as each differently classified unit advances',async()=>{
- reduced=false;try{const f=await mount(fixture(4)),control=confirm(f.host);for(let i=0;i<4;i++){const card=f.host.querySelector('.quick-unit'),kind=f.data.items[i].expected.kind;await click(control);assert.equal(card.classList.contains(kind),true);assert.equal(card.classList.contains('walk-confirmed-pulse'),true);assert.equal(card.querySelectorAll('.walk-confirmation-mark').length,1);assert.equal(control.querySelector('.walk-confirmation-mark'),null);assert.equal(control.disabled,true);await flush(380);assert.equal(card.classList.contains('walk-confirmed-pulse'),false);assert.equal(card.querySelector('.walk-confirmation-mark'),null);assert.equal(card.querySelector('.walk-border-sweep'),null);assert.equal(confirm(f.host),control);if(i<3)assert.equal(card.classList.contains(f.data.items[i+1].expected.kind),true)}assert.ok(f.host.querySelector('.quick-all-confirmed'));assert.equal(writes(f).length,4)}finally{reduced=true}
+test('status-matched feedback clears when each successive Quick Walk unit appears',async()=>{
+ reduced=false;
+ try{
+  const f=await mount(fixture(4)),control=confirm(f.host);
+  const colors=['#f43f5e','#10b981','#0ea5e9','#b91c1c'];
+  for(const [i,color] of colors.entries()){
+   const card=f.host.querySelector('.quick-unit');
+   await click(control);
+   assert.ok(card.classList.contains('walk-confirmed-pulse'));
+   assert.equal(control.textContent,'');
+   assert.equal(getComputedStyle(control).backgroundColor.toLowerCase(),color);
+   assert.equal(control.disabled,true);
+   await flush(240);
+   assert.equal(card.classList.contains('walk-confirmed-pulse'),false);
+   assert.equal(card.querySelector('.walk-confirmation-mark'),null);
+   assert.equal(confirm(f.host),control);
+   if(i<3){
+    assert.equal(activeLabel(f.host),f.data.items[i+1].expected.label);
+    assert.equal(control.textContent,'Confirm');
+   }
+  }
+  assert.ok(f.host.querySelector('.quick-all-confirmed'));
+  assert.equal(writes(f).length,4);
+ }finally{reduced=true}
 });
 
 }

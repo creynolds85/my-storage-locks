@@ -54,7 +54,7 @@ export default function Walkthrough({client,scope,admin,onAssign}:{client:any;sc
    clearConfirmationMotion(id);
    const current=pageRef.current;
    if(quick&&current&&current.id===sessionId&&quickSuccessRef.current===id)advanceQuick(id,current.items);
-  },quick?300:250));
+  },225));
  },[advanceQuick,clearConfirmationMotion]);
  const advance=useCallback((entry:WalkEntry|null)=>{if(!entry)return;anchor.current=entry.id;setQuery('');setFilter('all');setScrollRequest({id:entry.id,forward:false})},[]);
  const record=useCallback((id:string,mutation:Record<string,unknown>)=>{const originMode=modeRef.current,navigation=listNavigation.current;return queue.run(id,async()=>{

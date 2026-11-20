@@ -2,7 +2,7 @@ import test from 'node:test';import assert from 'node:assert/strict';import fs f
 import {createRequire} from 'node:module';const {transform,loadBindings}=createRequire(import.meta.url)('next/dist/build/swc');import React from 'react';import {renderToStaticMarkup} from 'react-dom/server';
 const root=path.resolve(import.meta.dirname,'..'),dir=path.join(root,'test-results','walkthrough-contract');await fs.mkdir(dir,{recursive:true});
 await loadBindings();
-for(const name of ['walkthrough-confirmation','walkthrough-card']){
+for(const name of ['walkthrough-card']){
  const source=(await fs.readFile(path.join(root,'components',name+'.tsx'),'utf8')).replaceAll("@/lib/",pathToFileURL(path.join(root,'lib')).href+'/').replace(/@\/components\/([a-z-]+)/g,(_,n)=>pathToFileURL(path.join(dir,n+'.mjs')).href);
  const compiled=(await transform(source,{filename:name+'.tsx',jsc:{parser:{syntax:'typescript',tsx:true},transform:{react:{runtime:'automatic'}},target:'es2022'},module:{type:'es6'}})).code;
  await fs.writeFile(path.join(dir,name+'.mjs'),compiled);
