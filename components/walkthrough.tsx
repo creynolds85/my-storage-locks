@@ -27,7 +27,7 @@ export default function Walkthrough({client,scope,admin,onAssign}:{client:any;sc
    const result=await client.rpc('walkthrough_page',{fid:scope,sid:selectedWeek||null});if(run!==generation.current)return;if(result.error)throw result.error;
    // Keep unchanged card objects stable during background refreshes.
    const prior=new Map(pageRef.current?.items.map(e=>[e.id,e]));const data=result.data as Page;
-   data.items=data.items.map(e=>{const old=prior.get(e.id);return old&&pageRef.current?.id===data.id&&old.version===e.version?old:e});pageRef.current=data;setPage(data);if(data.historical)setMode('list');setQuickId(id=>activeQuickUnit(data.items,id)?.id||null);setError('');
+   data.items=data.items.map(e=>{const old=prior.get(e.id);return old&&pageRef.current?.id===data.id&&old.version===e.version&&old.expected.sourceReview===e.expected.sourceReview&&old.expected.assignmentReview===e.expected.assignmentReview&&old.expected.missing===e.expected.missing?old:e});pageRef.current=data;setPage(data);if(data.historical)setMode('list');setQuickId(id=>activeQuickUnit(data.items,id)?.id||null);setError('');
   }catch{if(run===generation.current)setError('Unable to load this inspection. Please refresh and try again.');}
   finally{if(run===generation.current)setLoading(false)}
  },[client,scope,single,selectedWeek,refreshSource]);

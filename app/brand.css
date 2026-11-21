@@ -292,7 +292,7 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,te
 
 /* Keep the desktop column order while giving mobile serials a full-width line. */
 .lock-row .inventory-row-meta { display: contents; }
-.lock-row .serial strong { overflow-wrap: normal; }
+.lock-row .serial strong { min-width: 0; overflow-x: auto; white-space: nowrap; overflow-wrap: normal; }
 .lock-row .badge {
   gap: 5px;
   padding: 3px 7px;
@@ -302,35 +302,46 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,te
 .lock-row .badge i { width: 7px; height: 7px; }
 
 @media(max-width:950px) {
-  .lock-list .lock-row {
-    grid-template-columns: minmax(0,1fr) 16px;
-    grid-template-rows: auto auto;
+  .inventory-section .lock-list > .lock-row {
+    grid-template:
+      "serial arrow" auto
+      "details arrow" auto / minmax(0,1fr) 16px;
+    grid-auto-rows: auto;
     gap: 4px 10px;
     min-height: 0;
+    min-width: 0;
     padding: 10px 14px;
   }
-  .lock-list .lock-row .serial { grid-area: 1 / 1; gap: 8px; }
+  .inventory-section .lock-list > .lock-row:has(.facility-cell) {
+    grid-template-areas: "serial arrow" "details arrow" "facility arrow";
+  }
+  .inventory-section .lock-list > .lock-row .serial { grid-area: serial; gap: 8px; }
   .lock-row .lock-glyph { width: 28px; height: 28px; }
-  .lock-row .serial strong { font-size: clamp(13px,3.5vw,15px); }
-  .lock-row .inventory-row-meta {
+  .inventory-section .lock-list > .lock-row .serial strong {
+    font-size: clamp(13px,3.5vw,15px);
+  }
+  .inventory-section .lock-list > .lock-row .inventory-row-meta {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
     gap: 4px 10px;
-    grid-area: 2 / 1;
-    margin-inline-start: 36px;
+    grid-area: details;
+    padding-inline-start: 36px;
     min-width: 0;
   }
   .lock-row .badge { order: -1; font-size: 11px; }
   .lock-row .unit { min-width: 0; overflow-wrap: anywhere; }
   .lock-row .physical-color { order: 1; margin: 0; font-size: 11px; }
-  .lock-row .facility-cell {
-    grid-area: 3 / 1;
-    margin-inline-start: 36px;
+  .inventory-section .lock-list > .lock-row .facility-cell {
+    grid-area: facility;
+    margin: 0;
+    padding-inline-start: 36px;
     min-width: 0;
     line-height: 1.35;
+    overflow-wrap: normal;
+    word-break: normal;
   }
-  .lock-list .lock-row .row-arrow { grid-area: 1 / 2; }
+  .inventory-section .lock-list > .lock-row .row-arrow { grid-area: arrow; }
 }
 
 .quick-unit,.compact-walk-card {
