@@ -44,7 +44,55 @@ begin
  if not exists(select 1 from automation.lock_mirror_records r where r.lock_id=cubby_test.lock_id and r.issue='older_source_record' and not r.purpose_verified) then
   raise exception 'Generic or stale input was incorrectly verified';
  end if;
+ for step in 1..5 loop
+  insert into automation.lock_mirror_runs(source_org_id,snapshot_at,snapshot_key,source_count,capabilities)
+  values('org_ComboLabelQA',snapshot_base+(10+step)*interval '1 second','combo-transition-fixture-'||step,1,
+   '{"explicitPurpose":true,"lockDisplayStatusColumn":"display_status"}') returning id into run;
+  perform automation.lock_mirror_batch(run,jsonb_build_array(row_json||jsonb_build_object(
+   'unitId',case when step<=2 then 'unit_ComboTransferQA' end,
+   'unit',case when step<=2 then '004' end,
+   'unitMatches',case when step<=2 then 1 else 0 end,
+   'status',(array['ACTIVE','IN_TENANT','AVAILABLE','MISSING','DAMAGED'])[step],
+   'sourceDisplayStatus',(array['On vacant unit','Used by tenant','Available','Missing','Damaged'])[step],
+   'updatedAt','2026-11-19 09:00:0'||step)));
+  if not exists(select 1 from public.locks l join private.lock_secrets s on s.lock_id=l.id
+   where l.id=cubby_test.lock_id and l.status=(array['vacant','tenant_held','available','missing','damaged'])[step]
+    and l.unit is not distinct from case when step<=2 then '004' end and s.encrypted=decode('7634ab0c','hex')) then
+   raise exception 'Wrong source transition for step %',step;
+  end if;
+ end loop;
 end $$;
 
 rollback;
 select 'PASS: exact Combo Locks labels, generic label, stale markers, assignment identity, encryption and permissions' as result;
+
+begin;
+insert into public.facilities(id,name,identifier,source_org_id,source_facility_id)
+ values('98500000-0000-0000-0000-000000000003','Maintenance Flag Fixture','MAINTENANCE-FLAG-QA','org_MaintQA','fac_MaintQA');
+insert into automation.facility_links(source_org_id,source_facility_id,facility_id)
+ values('org_MaintQA','fac_MaintQA','98500000-0000-0000-0000-000000000003');
+
+do $$
+declare
+ row_json jsonb:='{"sourceLockId":"lock_MaintQA","serial":"MAINTQA","facilityId":"fac_MaintQA","unitId":null,"unit":null,"unitMatches":0,"status":"AVAILABLE","updatedAt":"2026-11-18 09:00:00","combination":null,"combinationAvailable":false}';
+ step int;
+ run uuid;
+ flag jsonb;
+ snapshot_base timestamptz:=clock_timestamp();
+begin
+ for step in 1..3 loop
+  flag:=case step when 1 then 'null'::jsonb when 2 then 'true'::jsonb else 'false'::jsonb end;
+  insert into automation.lock_mirror_runs(source_org_id,snapshot_at,snapshot_key,source_count,capabilities)
+   values('org_MaintQA',snapshot_base+step*interval '1 second','maint-fixture-'||step,1,
+    case when step=1 then '{}'::jsonb else '{"maintenanceColumn":"is_needs_maintenance"}'::jsonb end)
+   returning id into run;
+  perform automation.lock_mirror_batch(run,jsonb_build_array(row_json||jsonb_build_object('needsMaintenance',flag)));
+ end loop;
+ if not exists(select 1 from automation.lock_mirror_records r join public.locks l on l.id=r.lock_id
+  where r.source_org_id='org_MaintQA' and l.status='maintenance' and r.needs_maintenance
+   and r.issue='source_version_conflict') then
+  raise exception 'Maintenance backfill or same-version guard failed';
+ end if;
+end $$;
+rollback;
+select 'PASS: one-time numeric maintenance flag backfill and conflicting same-version flag' as result;
