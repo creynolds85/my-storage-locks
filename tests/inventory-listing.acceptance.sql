@@ -2,7 +2,7 @@ begin;
 do $$begin perform set_config('inventory_qa.baseline',(select count(*)::text from public.locks),true);end$$;
 insert into auth.users(id,email) values('91000000-0000-0000-0000-000000000001','inventory-qa@example.invalid');
 insert into public.profiles(id,email,name,role) values('91000000-0000-0000-0000-000000000001','inventory-qa@example.invalid','Inventory QA','employee');
-insert into auth.sessions(id,user_id) values('92000000-0000-0000-0000-000000000001','91000000-0000-0000-0000-000000000001');
+insert into auth.sessions(id,user_id,created_at) values('92000000-0000-0000-0000-000000000001','91000000-0000-0000-0000-000000000001',now());
 insert into public.facilities(id,name,identifier) values('93000000-0000-0000-0000-000000000001','z Facility QA','INVENTORY-QA-Z'),('93000000-0000-0000-0000-000000000002','A Facility QA','INVENTORY-QA-A');
 insert into public.memberships values('91000000-0000-0000-0000-000000000001','93000000-0000-0000-0000-000000000001');
 insert into public.locks(serial,color,facility_id,created_at,updated_at)
@@ -32,6 +32,23 @@ r:=public.inventory_listing('',null,null,'facility_serial',100,0);if (r->>'total
 r:=public.inventory_listing('',null,null,'facility_serial',3,0,false);if r->'items'->0->>'serial'<>'Z99' or r->'items'->1->>'serial'<>'0002' then raise exception 'FAIL bounded facility grouping';end if;
 r:=public.inventory_listing('','93000000-0000-0000-0000-000000000001',null,'serial',100,0);if (r->>'total')::int<>10 then raise exception 'FAIL selected facility filtering';end if;
 end$$;
+reset role;
+update public.locks set unit='10',status='vacant',color='Blue' where serial='a10' and facility_id='93000000-0000-0000-0000-000000000001';
+update public.locks set unit='2',status='overlock',color='Black' where serial='A2' and facility_id='93000000-0000-0000-0000-000000000001';
+set local role authenticated;
+do $$ declare r jsonb; lid uuid; denied boolean:=false;begin
+ r:=public.inventory_listing('',null,null,'unit_asc',1,0);if r->'items'->0->>'unit' is distinct from '2' then raise exception 'FAIL ascending natural units';end if;
+ r:=public.inventory_listing('',null,null,'unit_desc',1,0);if r->'items'->0->>'unit' is distinct from '10' then raise exception 'FAIL descending natural units';end if;
+ r:=public.inventory_listing('',null,null,'status_desc',1,0);if r->'items'->0->>'status' is distinct from 'overlock' then raise exception 'FAIL operational status ordering';end if;
+ r:=public.inventory_listing('',null,null,'color_desc',3,0);if r->'items'->0->>'color' is distinct from 'Blue' or r->'items'->2->>'color' is distinct from 'Unknown' then raise exception 'FAIL physical color sort or unset last';end if;
+ r:=public.inventory_listing('',null,null,'facility_desc',1,0);if r->'items'->0->>'facility_name' is distinct from 'z Facility QA' then raise exception 'FAIL descending facilities';end if;
+ r:=public.inventory_listing('',null,array['available'],'serial_desc',1,0);if r->'items'->0->>'serial' is distinct from 'Z99' then raise exception 'FAIL descending serial or retained filter';end if;
+ select id into strict lid from public.locks where serial='0002';
+ perform public.mutate_lock(jsonb_build_object('action','edit','id',lid,'version',1,'notes','Fixture edit'));
+ if (select color from public.locks where id=lid) is distinct from 'Unknown' then raise exception 'FAIL notes edit changed unset color';end if;
+ begin perform public.mutate_lock(jsonb_build_object('action','edit','id',lid,'version',2,'color','Other'));exception when invalid_parameter_value then denied:=true;end;
+ if not denied then raise exception 'FAIL obsolete color accepted';end if;
+end $$;
 reset role;
 update public.profiles set role='admin' where id='91000000-0000-0000-0000-000000000001';
 set local role authenticated;

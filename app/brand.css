@@ -490,3 +490,20 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,te
 .account-email-actions .account-delete-button{color:#9f1239;border-color:#fda4af}
 .account-email-actions .account-delete-confirm{background:#be123c;border-color:#be123c}
 .account-email-actions .account-delete-confirm:hover{background:#9f1239;border-color:#9f1239}
+
+/* Dashboard summary cards share the Walk-Through left-edge accent. */
+.stats-grid .stat {background:#fff;border:1px solid #E2E8F0;border-left:4px solid var(--summary-accent);border-radius:14px;box-shadow:0 1px 3px rgba(15,23,42,.06);display:flex;flex-direction:column;align-items:flex-start;gap:5px;min-height:118px;text-align:left}
+.stats-grid .stat:hover {background:#fff;border-color:#CBD5E1;border-left-color:var(--summary-accent)}
+.stats-grid .stat:focus-visible {outline-color:var(--summary-accent)}
+.stats-grid .stat>span {color:#0F172A;min-height:0;display:block}
+.stats-grid .stat>strong {color:#0F172A;font-weight:750;margin:0;line-height:1.05;grid-area:auto}
+.stats-grid .stat>small {color:#475569;grid-area:auto;margin:0}
+.stats-grid .stat.total>strong {font-size:clamp(48px,8vw,70px);font-weight:800}
+.stats-grid .stat.total {align-items:flex-start}
+.inventory-sort-header {display:inline-flex;align-items:center;gap:4px;justify-self:start;padding:3px 0;color:inherit;background:none;border:0;text-align:left;text-transform:inherit;font:inherit;letter-spacing:inherit}
+.inventory-sort-header:hover,.inventory-sort-header:focus-visible {color:#1D4ED8}
+.physical-color .blue {background:#2563EB}
+.walk-record-note {color:#475569;font-size:.77rem;line-height:1.25;font-weight:600}
+.cubby-export-form {display:flex;flex-wrap:wrap;align-items:end;gap:14px;margin:12px 0}
+.cubby-export-form label {display:grid;gap:5px;max-width:100%;font-size:.85rem}
+.cubby-export-form input,.cubby-export-form select {max-width:100%;min-height:42px}

@@ -15,3 +15,11 @@ test('compact cards retain all four classifications and separate confirmation/is
 test('a confirmed card keeps its high-contrast issue indicator',()=>{const html=render('auction',true,'Door/Latch Damage');assert.ok(html.includes('aria-pressed="true"'));assert.ok(html.includes('walk-issue-button flagged'));assert.ok(html.includes('Door/Latch Damage'));assert.ok(html.includes('Undo confirmation for unit 3214'));assert.ok(html.includes('walk-issue-tag'));});
 test('assignment review displays a warning without an Add Lock action',()=>{const entry={id:'review',version:1,result:'unchecked',issue:null,notes:'',checkedAt:null,expected:{label:'0010',kind:'vacant',requiredType:'vacant',missing:false,assignmentReview:true,locks:[{serial:'TEST002',status:'unclassified'}]}};const html=renderToStaticMarkup(React.createElement(Card,{entry,disabled:false,pending:false,historical:false,onConfirm(){},onOpenIssue(){},onAssign(){}}));assert.ok(html.includes('Verify assigned lock purpose'));assert.ok(html.includes('TEST002'));assert.ok(!html.includes('Add Vacant Lock'));});
 test('mirror uncertainty is a source-review warning, not an Add Lock action',()=>{const entry={id:'source-review',version:1,result:'unchecked',issue:null,notes:'',checkedAt:null,expected:{label:'0010',kind:'vacant',requiredType:'vacant',missing:false,assignmentReview:true,sourceReview:true,locks:[]}};const html=renderToStaticMarkup(React.createElement(Card,{entry,disabled:false,pending:false,historical:false,onConfirm(){},onOpenIssue(){},onAssign(){}}));assert.ok(html.includes('Verify the Cubby lock record'));assert.ok(!html.includes('Add Vacant Lock'));});
+test('Mirror Mode keeps physical issues and neutral missing assignments while suppressing source warnings',()=>{
+ const entry={id:'mirror-display',version:1,result:'issue',issue:'Door/Latch Damage',notes:'',checkedAt:null,expected:{
+  label:'0010',kind:'vacant',requiredType:'vacant',missing:true,mirrorMode:true,assignmentReview:true,sourceReview:true,locks:[]}};
+ const html=renderToStaticMarkup(React.createElement(Card,{entry,disabled:false,pending:false,historical:false,onConfirm(){},onOpenIssue(){},onAssign(){}}));
+ assert.match(html,/Door\/Latch Damage/);
+ assert.match(html,/No lock assignment recorded in Cubby/);
+ assert.doesNotMatch(html,/Verify the Cubby lock record|Add Vacant Lock/);
+});
