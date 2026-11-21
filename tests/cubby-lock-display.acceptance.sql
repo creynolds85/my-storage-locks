@@ -44,6 +44,17 @@ begin
  if not exists(select 1 from automation.lock_mirror_records r where r.lock_id=cubby_test.lock_id and r.issue='older_source_record' and not r.purpose_verified) then
   raise exception 'Generic or stale input was incorrectly verified';
  end if;
+ update public.locks set source_status='ACTIVE',source_display_status='Locked for auction',
+  source_unit_id='unit_ComboLabelQA',source_updated_at='2026-11-18T09:00:00Z' where id=cubby_test.lock_id;
+ update automation.lock_mirror_display_evidence set display_status='On vacant unit',
+  source='combo_locks_export',observed_at=snapshot_base+interval '7 seconds' where source_org_id='org_ComboLabelQA';
+ insert into automation.lock_mirror_runs(source_org_id,snapshot_at,snapshot_key,source_count,capabilities)
+  values('org_ComboLabelQA',snapshot_base+interval '8 seconds','combo-export-replay',1,'{}') returning id into run;
+ perform automation.lock_mirror_batch(run,jsonb_build_array(row_json));
+ if not exists(select 1 from public.locks l join public.assignments a on a.lock_id=l.id and a.released_at is null
+  where l.id=cubby_test.lock_id and l.status='vacant' and a.id=original_assignment and a.type='vacant') then
+  raise exception 'Original import displaced exact current Combo Locks evidence';
+ end if;
  for step in 1..5 loop
   insert into automation.lock_mirror_runs(source_org_id,snapshot_at,snapshot_key,source_count,capabilities)
   values('org_ComboLabelQA',snapshot_base+(10+step)*interval '1 second','combo-transition-fixture-'||step,1,
