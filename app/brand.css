@@ -109,7 +109,16 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,te
 .inventory-toolbar .search-input.compact{flex:1 1 240px;min-width:0}
 .inventory-toolbar .status-filter{flex:1 1 240px;min-width:230px;max-width:100%}
 .inventory-toolbar .status-filter select{flex:1;min-width:0;max-width:none;width:100%;min-height:44px;padding:10px 32px 10px 0;font-size:13px;text-overflow:clip}
-.inventory-toolbar>select{flex:1 1 240px;min-width:230px;max-width:100%;min-height:44px;padding:10px 32px 10px 12px;font-size:13px}
+.inventory-sort-controls{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;align-items:end;flex:1 1 320px;min-width:0}
+.inventory-sort-field,.inventory-sort-direction{display:grid;gap:4px;min-width:0;font-size:12px;font-weight:600;color:#475569}
+.inventory-toolbar .inventory-sort-field select{width:100%;min-width:0;max-width:100%;min-height:46px;padding:8px 10px;font-size:13px;font-weight:400}
+.inventory-sort-segment{display:flex;background:#fff;border:1px solid #D0D5DD;border-radius:6px}
+.inventory-sort-segment button{display:grid;place-items:center;width:44px;min-height:44px;padding:0;border:0;border-radius:5px;background:#fff;color:#475569}
+.inventory-sort-segment button+button{border-left:1px solid #E2E8F0}
+.inventory-sort-segment button[aria-pressed="true"]{background:#EFF6FF;color:#1D4ED8}
+.inventory-sort-segment button:disabled{color:#64748B;opacity:.55;cursor:default}
+.inventory-sort-segment button:focus-visible{position:relative;outline:2px solid #2563EB;outline-offset:-2px}
+@media(max-width:375px){.inventory-sort-controls{grid-template-columns:minmax(0,1fr)}.inventory-sort-direction{justify-self:start}}
 .inventory-toolbar select option{white-space:normal}
 .dashboard-search-section{margin-bottom:26px}.dashboard-search-section .hero-search{margin-bottom:0}
 .dashboard-search-results{margin-top:8px;background:#fff;border:1px solid var(--line);border-radius:10px;overflow:hidden}
@@ -121,9 +130,9 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,te
 .combination{white-space:pre-wrap;overflow-wrap:anywhere}.combination.is-hidden{font-family:ui-monospace,SFMono-Regular,Consolas,monospace;letter-spacing:0;word-spacing:.35em}
 @media(max-width:720px){
  .inventory-toolbar{display:grid;grid-template-columns:minmax(0,1fr);gap:10px}
- .inventory-toolbar .search-input.compact,.inventory-toolbar .status-filter,.inventory-toolbar>select{min-width:0;max-width:100%;width:100%}
+ .inventory-toolbar .search-input.compact,.inventory-toolbar .status-filter,.inventory-sort-controls{min-width:0;max-width:100%;width:100%}
  .inventory-toolbar .status-filter select{max-width:none;min-width:0;width:100%;font-size:14px}
- .inventory-toolbar>select{font-size:14px}.dashboard-search-section{margin-bottom:20px}
+ .dashboard-search-section{margin-bottom:20px}
  .dashboard-lock-result{padding:16px;min-height:96px}.dashboard-result-serial{font-size:17px}.dashboard-result-facility{font-size:13px}.search-feedback{padding:14px 16px}
 }
 

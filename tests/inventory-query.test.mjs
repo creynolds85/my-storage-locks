@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {serialSearch,effectiveInventorySort,fetchInventory,fetchDashboardMatches} from '../lib/inventory-query.mjs';
+import {serialSearch,effectiveInventorySort,fetchInventory,fetchDashboardMatches,inventorySortOptions,inventorySortKey,inventorySortOption,inventorySortDirection,toggleInventorySort} from '../lib/inventory-query.mjs';
 test('partial search preserves leading zeros and alphanumeric content from the first character',()=>{
  for(const q of ['0','00','N','n63','P86','1111LLL1'])assert.equal(serialSearch(q),q);
  assert.equal(serialSearch('%_*'), '');
@@ -10,6 +10,8 @@ test('default sorts follow scope and manual choices remain explicit',()=>{
  assert.equal(effectiveInventorySort('default','all',2),'facility_serial');
  assert.equal(effectiveInventorySort('default','one',23),'serial');
  assert.equal(effectiveInventorySort('default','one',1),'serial');
+ assert.equal(effectiveInventorySort('default_desc','all',23),'facility_desc');
+ assert.equal(effectiveInventorySort('default_desc','one',23),'serial_desc');
  for(const explicit of ['serial','updated_at','created_at'])for(const scope of ['all','one'])assert.equal(effectiveInventorySort(explicit,scope,23),explicit);
 });
 test('queries use the existing signed-in client, pass scope/filter/page boundaries and never request combinations',async()=>{
@@ -33,4 +35,26 @@ test('instant dashboard requests a bounded authorized list without an expensive 
  let captured;const client={rpc:async(name,args)=>{captured=args;return{data:{items:[{serial:'1111LLL1'}],total:null,hasMore:true}}}};
  const result=await fetchDashboardMatches(client,{query:'1',scope:'all',sort:'facility_serial'});
  assert.equal(captured.p_exact_count,false);assert.equal(captured.p_limit,20);assert.equal(captured.p_offset,0);assert.equal(captured.p_statuses,null);assert.equal(result.hasMore,true);assert.equal(result.items[0].serial,'1111LLL1');
+});
+
+test('compact sort controls round-trip the six visible fields',()=>{
+ const supported=[
+  ['default','default','default_desc'],
+  ['serial','serial','serial_desc'],
+  ['color','color_asc','color_desc'],
+  ['status','status_asc','status_desc'],
+  ['unit','unit_asc','unit_desc'],
+  ['facility','facility_serial','facility_desc'],
+ ];
+ assert.deepEqual(inventorySortOptions.map(({field})=>field),supported.map(([field])=>field));
+ for(const [field,asc,desc] of supported){
+  assert.equal(inventorySortKey(field,'ascending'),asc);
+  assert.equal(inventorySortKey(field,'descending'),desc);
+  assert.equal(inventorySortOption(asc).field,field);
+  assert.equal(inventorySortOption(desc).field,field);
+  assert.equal(inventorySortDirection(desc,field),'descending');
+  assert.equal(inventorySortDirection(asc,field),'ascending');
+  assert.equal(toggleInventorySort(asc,field),desc);
+  assert.equal(toggleInventorySort(desc,field),asc);
+ }
 });
