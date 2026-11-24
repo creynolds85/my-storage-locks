@@ -516,3 +516,42 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,te
 .cubby-export-form {display:flex;flex-wrap:wrap;align-items:end;gap:14px;margin:12px 0}
 .cubby-export-form label {display:grid;gap:5px;max-width:100%;font-size:.85rem}
 .cubby-export-form input,.cubby-export-form select {max-width:100%;min-height:42px}
+
+.reconciliation .section-heading {margin-bottom:14px}
+.reconciliation-metrics,.reconciliation-sync {
+  display:grid;
+  gap:10px;
+  margin:0;
+}
+.reconciliation-metrics {grid-template-columns:repeat(auto-fit,minmax(min(100%,140px),1fr))}
+.reconciliation-sync {grid-template-columns:repeat(auto-fit,minmax(min(100%,220px),1fr))}
+.reconciliation-metrics > div,.reconciliation-sync > div,.reconciliation-readiness {
+  border:1px solid var(--line);
+  border-radius:9px;
+  background:#f8fafc;
+  padding:12px;
+}
+.reconciliation-metrics dt,.reconciliation-sync dt {font-size:13px;font-weight:700}
+.reconciliation-metrics dd {margin:4px 0 0;font-size:23px;font-weight:700}
+.reconciliation-sync dd,.reconciliation-note,.reconciliation-readiness p {margin:5px 0 0;font-size:13px}
+.reconciliation-note {margin:10px 0;color:#475569}
+.reconciliation-readiness,.reconciliation-review {margin-top:16px}
+.reconciliation h3 {margin:0;font-size:15px}
+.reconciliation-filters {display:flex;flex-wrap:wrap;gap:10px;margin-top:10px}
+.reconciliation-filters label {display:grid;flex:1 1 180px;gap:4px;min-width:0;font-size:13px}
+.reconciliation-filters :is(input,select) {min-width:0;min-height:40px}
+.reconciliation-records {list-style:none;padding:0;margin:0 0 10px;border-top:1px solid var(--line)}
+.reconciliation-records li {
+  display:grid;
+  grid-template-columns:minmax(125px,1fr) minmax(110px,1fr) minmax(180px,1.2fr);
+  gap:12px;
+  padding:9px 0;
+  border-bottom:1px solid var(--line);
+  overflow-wrap:anywhere;
+}
+.reconciliation-records small {display:block;margin-top:3px;font-size:12px;color:#475569}
+.reconciliation-tag {display:inline-block;border-radius:10px;background:#e8eef6;color:#334155;padding:2px 7px;font-size:11px;font-weight:700}
+.reconciliation-tag.confirmed {background:#fce8e6;color:#8c2720}
+@media (max-width:600px) {
+  .reconciliation-records li {grid-template-columns:1fr;gap:5px}
+}
