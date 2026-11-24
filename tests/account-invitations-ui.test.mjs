@@ -6,16 +6,28 @@ if(!process.env.WALK_DOM_MODULE){test('account invitation UI checks',{skip:'Set 
  Object.defineProperty(globalThis,'navigator',{value:win.navigator,configurable:true});globalThis.localStorage=win.localStorage;globalThis.IS_REACT_ACT_ENVIRONMENT=true;
  const React=await import('react'),{act}=React,{createRoot}=await import('react-dom/client');const {transform,loadBindings}=createRequire(import.meta.url)('next/dist/build/swc');await loadBindings();
  const root=path.resolve(import.meta.dirname,'..'),dir=path.join(root,'test-results','account-ui');await fs.mkdir(dir,{recursive:true});
- const components=['lock-manager','cubby-combo-export','combination-change','dashboard-lock-search','walkthrough','walkthrough-card','walkthrough-issue-dialog','walkthrough-review-list','walkthrough-quick-unit','walkthrough-history'];
+ const components=['lock-manager','cubby-combo-export','inventory-reconciliation','combination-change','dashboard-lock-search','walkthrough','walkthrough-card','walkthrough-issue-dialog','walkthrough-review-list','walkthrough-quick-unit','walkthrough-history'];
  for(const name of components){let source=await fs.readFile(path.join(root,'components',name+'.tsx'),'utf8');source=source.replaceAll('"@/lib/supabase"','"data:text/javascript,export function db(){return globalThis.accountFixtureClient}"').replace(/@\/components\/([a-z-]+)/g,(_,n)=>pathToFileURL(path.join(dir,n+'.mjs')).href).replaceAll('@/lib/',pathToFileURL(path.join(root,'lib')).href+'/').replaceAll("'./walkthrough-card'","'./walkthrough-card.mjs'");const compiled=(await transform(source,{filename:name+'.tsx',jsc:{parser:{syntax:'typescript',tsx:true},transform:{react:{runtime:'automatic'}},target:'es2022'},module:{type:'es6'}})).code;await fs.writeFile(path.join(dir,name+'.mjs'),compiled)}
  const {default:Manager}=await import(pathToFileURL(path.join(dir,'lock-manager.mjs')));let mounted;
  afterEach(async()=>{if(mounted){await act(async()=>mounted.unmount());mounted=null}document.body.replaceChildren();localStorage.clear()});
  const click=async el=>{assert.ok(el,'control exists');await act(async()=>{el.click();await new Promise(r=>setTimeout(r,15))})};
  const button=text=>[...document.querySelectorAll('button')].find(b=>b.textContent.trim()===text);
  const type=async(el,value)=>{await act(async()=>{Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value').set.call(el,value);el.dispatchEvent(new win.InputEvent('input',{bubbles:true,inputType:'insertText',data:value}))})};
+ const snapshotTime='2026-11-24T15:00:00Z',workerTime='2026-11-24T15:20:00Z';
+ const report={
+  asOf:workerTime,mode:'mirror',inventory:2,matched:1,sourceCount:1,unclassified:1,retained:1,differences:1,
+  missingCodes:0,purposeUnverified:1,verifiedCodes:0,workerState:'operational',lastCheckedAt:workerTime,
+  lastSuccessAt:workerTime,lastErrorCode:null,lastFullSyncAt:snapshotTime,sourceSnapshotAt:snapshotTime,
+  sourceComplete:true,sourceFresh:true,capabilities:{combinations:false,explicitPurpose:false},
+  latestCsvReconciledAt:null,legacyCsvEvidenceAt:snapshotTime,
+  items:[
+   {serial:'FIXTURE1',facility:'Fixture Facility',status:'unclassified',reasons:['unclassified','cubby_locked']},
+   {serial:'FIXTURE2',facility:'Fixture Facility',status:'missing',reasons:['retained_in_msl']},
+  ],
+ };
  async function mount({setup=false,anonymous=false,emailFailure=false,deliveryReady=true,deleteFailure=false}={}){
   win.history.replaceState(null,'',setup?'/login#access_token=fixture&refresh_token=fixture&type=invite':anonymous?'/login':'/dashboard?view=admin');let signedIn=!anonymous&&!setup;const calls=[],accounts=[{account_id:'fixture-inactive-id',email:'inactive@example.invalid',name:'Inactive Employee',role:'employee',active:false,facility_ids:[],registered:false,setup_complete:false}];
-  const client={auth:{getUser:async()=>({data:{user:signedIn?{id:'fixture-admin',email:'fixture@example.invalid'}:null}}),getSession:async()=>({data:{session:{access_token:'fixture'}}}),setSession:async()=>{calls.push(['setSession']);signedIn=true;return {error:null}},onAuthStateChange:()=>({data:{subscription:{unsubscribe(){}}}}),updateUser:async()=>{calls.push(['updateUser']);return {error:null}},resend:async()=>{calls.push(['resend']);return {error:{code:'over_email_send_rate_limit',status:429}}}},from:table=>({select:()=>table==='profiles'?{eq:()=>({maybeSingle:async()=>({data:{id:'fixture-admin',email:'fixture@example.invalid',name:'Fixture Admin',role:'admin',active:true}})})}:{order:async()=>({data:[{id:'fixture-facility',name:'Fixture Facility',identifier:'fixture',active:true}]})}}),rpc:(name,args)=>{calls.push([name,args]);let result={data:null};if(name==='manager_session')result={data:{active:true,serverNow:Date.now(),idleExpiresAt:Date.now()+1800000,absoluteExpiresAt:Date.now()+43200000}};if(name==='inventory_counts')result={data:{}};if(name==='list_accounts')result={data:structuredClone(accounts)};if(name==='account_email_available')result={data:deliveryReady};if(name==='admin_action'){accounts.push({...args.p,account_id:'fixture-new-id',registered:false,setup_complete:false});result={data:{registered:false}}}if(name==='delete_team_account'){if(deleteFailure)result={data:null,error:{code:'P0001',message:'A setup email is still being processed.'}};else{const i=accounts.findIndex(a=>a.account_id===args.target_account_id);assert.ok(i>=0);accounts.splice(i,1);result={data:true}}}const p=Promise.resolve(result);p.abortSignal=()=>p;return p}};
+  const client={auth:{getUser:async()=>({data:{user:signedIn?{id:'fixture-admin',email:'fixture@example.invalid'}:null}}),getSession:async()=>({data:{session:{access_token:'fixture'}}}),setSession:async()=>{calls.push(['setSession']);signedIn=true;return {error:null}},onAuthStateChange:()=>({data:{subscription:{unsubscribe(){}}}}),updateUser:async()=>{calls.push(['updateUser']);return {error:null}},resend:async()=>{calls.push(['resend']);return {error:{code:'over_email_send_rate_limit',status:429}}}},from:table=>({select:()=>table==='profiles'?{eq:()=>({maybeSingle:async()=>({data:{id:'fixture-admin',email:'fixture@example.invalid',name:'Fixture Admin',role:'admin',active:true}})})}:{order:async()=>({data:[{id:'fixture-facility',name:'Fixture Facility',identifier:'fixture',active:true}]})}}),rpc:(name,args)=>{calls.push([name,args]);let result={data:null};if(name==='manager_session')result={data:{active:true,serverNow:Date.now(),idleExpiresAt:Date.now()+1800000,absoluteExpiresAt:Date.now()+43200000}};if(name==='inventory_counts')result={data:{}};if(name==='lock_inventory_reconciliation')result={data:report};if(name==='list_accounts')result={data:structuredClone(accounts)};if(name==='account_email_available')result={data:deliveryReady};if(name==='admin_action'){accounts.push({...args.p,account_id:'fixture-new-id',registered:false,setup_complete:false});result={data:{registered:false}}}if(name==='delete_team_account'){if(deleteFailure)result={data:null,error:{code:'P0001',message:'A setup email is still being processed.'}};else{const i=accounts.findIndex(a=>a.account_id===args.target_account_id);assert.ok(i>=0);accounts.splice(i,1);result={data:true}}}const p=Promise.resolve(result);p.abortSignal=()=>p;return p}};
   globalThis.accountFixtureClient=client;globalThis.fetch=async(url,options)=>{assert.match(url,/\/functions\/v1\/invite-employee$/);calls.push(['email',JSON.parse(options.body)]);return new Response(JSON.stringify(emailFailure?{error:'Fixture email failure'}:{ok:true,message:'Invitation sent.'}),{status:emailFailure?503:200,headers:{'Content-Type':'application/json'}})};
   const host=document.createElement('div');document.body.append(host);mounted=createRoot(host);await act(async()=>{mounted.render(React.createElement(Manager,{loginMessage:'Fixture headline'}));await new Promise(r=>setTimeout(r,20))});return {calls,accounts};
  }
@@ -61,6 +73,24 @@ if(!process.env.WALK_DOM_MODULE){test('account invitation UI checks',{skip:'Set 
   assert.equal(f.accounts.length,1);
   assert.ok(button('Permanently delete account'));
   assert.match(document.querySelector('[role=alert]').textContent,/still being processed/);
+ });
+
+ test('Administration renders reconciliation and filters retained records without another RPC',async()=>{
+  const f=await mount();
+  const panel=document.querySelector('section.reconciliation');
+  assert.ok(panel);
+  assert.deepEqual([...panel.querySelectorAll('.reconciliation-metrics dd')].map(node=>node.textContent),['2','1','1','1','1']);
+  assert.match(panel.textContent,/Transition readiness · Review required/);
+  assert.match(panel.textContent,/Latest recorded export evidence/);
+  assert.ok(panel.querySelector('time[datetime="'+workerTime+'"]'));
+  assert.ok(panel.querySelector('time[datetime="'+snapshotTime+'"]'));
+  const finding=panel.querySelector('.reconciliation-filters select');
+  await act(async()=>{finding.value='retained';finding.dispatchEvent(new Event('change',{bubbles:true}));});
+  assert.deepEqual([...panel.querySelectorAll('.reconciliation-records strong')].map(node=>node.textContent),['FIXTURE2']);
+  assert.match(panel.textContent,/Snapshot difference/);
+  assert.equal(f.calls.filter(([name])=>name==='lock_inventory_reconciliation').length,1);
+  await click(button('Refresh'));
+  assert.equal(f.calls.filter(([name])=>name==='lock_inventory_reconciliation').length,2);
  });
 
 }
